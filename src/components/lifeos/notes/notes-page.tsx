@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
+import DOMPurify from 'isomorphic-dompurify'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import {
   Plus,
@@ -521,7 +522,7 @@ export function NotesPage() {
                     <div className="h-full p-8 overflow-auto">
                       <div 
                         className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: selectedNote.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedNote.content) }}
                       />
                     </div>
                   ) : (
@@ -537,7 +538,7 @@ export function NotesPage() {
                       <div className="w-1/2 h-full p-8 overflow-auto bg-muted/5">
                         <div 
                           className="prose prose-sm dark:prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: selectedNote.content }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedNote.content) }}
                         />
                       </div>
                     </div>

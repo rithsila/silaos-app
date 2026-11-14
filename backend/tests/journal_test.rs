@@ -254,7 +254,9 @@ async fn test_journal_date_filtering() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let journals: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
     // Should only return the journal from 2026-06-07
-    assert!(journals.iter().any(|j| j["date"].as_str().unwrap().contains("2026-06-07")));
+    assert!(journals
+        .iter()
+        .any(|j| j["date"].as_str().unwrap().contains("2026-06-07")));
 }
 
 #[tokio::test]

@@ -123,11 +123,21 @@ async fn habit_logs(
     habit_id: &str,
     take: Option<i64>,
 ) -> Result<Vec<HabitLog>, sqlx::Error> {
-    let sql = match take {
-        Some(n) => format!("SELECT * FROM HabitLog WHERE habitId = ? ORDER BY date DESC LIMIT {n}"),
-        None => "SELECT * FROM HabitLog WHERE habitId = ? ORDER BY date DESC".to_string(),
+    let rows = match take {
+        Some(n) => {
+            sqlx::query("SELECT * FROM HabitLog WHERE habitId = ? ORDER BY date DESC LIMIT ?")
+                .bind(habit_id)
+                .bind(n)
+                .fetch_all(db)
+                .await?
+        }
+        None => {
+            sqlx::query("SELECT * FROM HabitLog WHERE habitId = ? ORDER BY date DESC")
+                .bind(habit_id)
+                .fetch_all(db)
+                .await?
+        }
     };
-    let rows = sqlx::query(&sql).bind(habit_id).fetch_all(db).await?;
     rows.iter()
         .map(|r| {
             Ok(HabitLog {
@@ -298,4 +308,22 @@ pub async fn update_habit(
     Ok(Json(
         build_habit_full(&st.db, habit_from_row(&row)?, Some(30)).await?,
     ))
+}
+
+pub async fn delete_habit(
+    State(st): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let exists: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM Habit WHERE id = ?")
+        .bind(&id)
+        .fetch_one(&st.db)
+        .await?;
+    if exists == 0 {
+        return Err(AppError::NotFound("Habit not found".to_string()));
+    }
+    sqlx::query("DELETE FROM Habit WHERE id = ?")
+        .bind(&id)
+        .execute(&st.db)
+        .await?;
+    Ok(Json(serde_json::json!({ "success": true })))
 }

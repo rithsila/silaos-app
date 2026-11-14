@@ -32,9 +32,8 @@ async fn test_courses_crud_happy_path() {
     let create_body = json!({
         "title": "Advanced Rust Programming",
         "description": "Deep dive into Rust advanced concepts",
-        "instructor": "John Doe",
+        "provider": "John Doe",
         "status": "in-progress",
-        "platform": "Udemy",
         "startDate": "2026-06-01",
         "progress": 0
     });
@@ -54,7 +53,7 @@ async fn test_courses_crud_happy_path() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let created_course: Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(created_course["title"], "Advanced Rust Programming");
-    assert_eq!(created_course["instructor"], "John Doe");
+    assert_eq!(created_course["provider"], "John Doe");
     assert_eq!(created_course["status"], "in-progress");
     let course_id = created_course["id"].as_str().unwrap();
 
@@ -151,7 +150,7 @@ async fn test_courses_create_validation() {
     // Missing title should return 400
     let create_body = json!({
         "description": "Course without title",
-        "instructor": "Jane Doe"
+        "provider": "Jane Doe"
     });
     let response = app
         .clone()
@@ -168,12 +167,16 @@ async fn test_courses_create_validation() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let error: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(error["error"].as_str().unwrap().contains("title"));
+    assert!(error["error"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("title"));
 
     // Empty title should return 400
     let create_body = json!({
         "title": "",
-        "instructor": "Jane Doe"
+        "provider": "Jane Doe"
     });
     let response = app
         .clone()
@@ -248,7 +251,7 @@ async fn test_courses_status_filtering() {
     for status in &statuses {
         let body = json!({
             "title": format!("Course {}", status),
-            "instructor": "Test Instructor",
+            "provider": "Test Instructor",
             "status": status
         });
         app.clone()
@@ -288,7 +291,7 @@ async fn test_courses_progress_tracking() {
     // Create a course with initial progress
     let create_body = json!({
         "title": "JavaScript Basics",
-        "instructor": "Test Instructor",
+        "provider": "Test Instructor",
         "status": "in-progress",
         "progress": 25
     });
@@ -341,8 +344,8 @@ async fn test_courses_platform_filtering() {
     for platform in &platforms {
         let body = json!({
             "title": format!("Course on {}", platform),
-            "instructor": "Test Instructor",
-            "platform": platform
+            "provider": "Test Instructor",
+            "provider": platform
         });
         app.clone()
             .oneshot(
@@ -362,7 +365,7 @@ async fn test_courses_platform_filtering() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/courses?platform=Udemy")
+                .uri("/api/courses?provider=Udemy")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -371,5 +374,5 @@ async fn test_courses_platform_filtering() {
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let courses: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(courses.iter().all(|c| c["platform"] == "Udemy"));
+    assert!(courses.iter().all(|c| c["provider"] == "Udemy"));
 }

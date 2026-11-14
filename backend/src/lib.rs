@@ -161,7 +161,9 @@ pub fn build_app(pool: SqlitePool) -> Router {
         )
         .route(
             "/api/habits/{id}",
-            get(habits::get_habit).patch(habits::update_habit),
+            get(habits::get_habit)
+                .patch(habits::update_habit)
+                .delete(habits::delete_habit),
         )
         // Habit Logs
         .route(
@@ -253,6 +255,7 @@ pub fn build_app(pool: SqlitePool) -> Router {
             get(widgets::get_widgets).put(widgets::save_widgets),
         )
         .route("/api/notifications", get(notifications::get_notifications))
+        .route("/api/analytics", get(analytics::get_analytics))
         .route("/api/insights", get(analytics::get_analytics))
         .route("/api/weekly-review", get(weekly_review::get_weekly_review))
         .route("/api/search", get(search::search))

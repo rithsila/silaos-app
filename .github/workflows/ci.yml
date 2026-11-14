@@ -169,46 +169,14 @@ jobs:
         with:
           workspaces: backend
 
-      - name: Build backend
-        run: cargo build --release
-        working-directory: backend
-
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
-
-      - name: Start backend server
-        run: nohup cargo run --release > backend.log 2>&1 &
-        working-directory: backend
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-
-      - name: Start frontend server
-        run: nohup bun run dev > frontend.log 2>&1 &
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-
-      - name: Wait for services
-        run: |
-          echo "Waiting for frontend..."
-          timeout 90 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 2; echo "Retrying..."; done'
-          echo "Frontend ready!"
-          
-          echo "Waiting for backend..."
-          timeout 90 bash -c 'until curl -sf http://localhost:8080/api/health > /dev/null; do sleep 2; echo "Retrying..."; done'
-          echo "Backend ready!"
 
       - name: Run Playwright tests
         run: bunx playwright test
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-
-      - name: Show logs on failure
-        if: failure()
-        run: |
-          echo "=== Frontend logs ==="
-          cat frontend.log || echo "No frontend logs"
-          echo "=== Backend logs ==="
-          cat backend/backend.log || echo "No backend logs"
+          # cargo run cwd is backend/; Prisma's file:./prisma/dev.db is repo-root-relative
+          DATABASE_URL: sqlite:../prisma/dev.db
 
       - name: Upload Playwright report
         if: always()

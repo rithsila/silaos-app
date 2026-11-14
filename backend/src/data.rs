@@ -574,7 +574,27 @@ pub async fn import_data(
     ))
 }
 
-pub async fn reset_data(State(st): State<AppState>) -> Result<Json<Value>, AppError> {
+#[derive(serde::Deserialize)]
+pub struct ResetBody {
+    pub confirm: Option<String>,
+}
+
+pub async fn reset_data(
+    State(st): State<AppState>,
+    body: Option<Json<ResetBody>>,
+) -> Result<Json<Value>, AppError> {
+    let confirmed = body
+        .as_ref()
+        .and_then(|b| b.confirm.as_deref())
+        .map(|s| s == "RESET_ALL_DATA")
+        .unwrap_or(false);
+
+    if !confirmed {
+        return Err(AppError::BadRequest(
+            "Confirmation required: please send { \"confirm\": \"RESET_ALL_DATA\" } to reset all data".to_string(),
+        ));
+    }
+
     // Delete in reverse dependency order (no CASCADE on everything)
     sqlx::query("DELETE FROM TimeEntry").execute(&st.db).await?;
     sqlx::query("DELETE FROM PomodoroSession")

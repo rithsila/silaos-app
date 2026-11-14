@@ -24,7 +24,9 @@ fn calc_trend(current: f64, previous: f64) -> &'static str {
     }
 }
 
-pub async fn get_analytics(State(st): State<AppState>) -> Result<Json<serde_json::Value>, AppError> {
+pub async fn get_analytics(
+    State(st): State<AppState>,
+) -> Result<Json<serde_json::Value>, AppError> {
     let now = now_ms();
     let today_ms = {
         let s = now / 1000;

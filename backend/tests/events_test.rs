@@ -8,6 +8,14 @@ use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+fn listed_events(body: &[u8]) -> Vec<Value> {
+    let v: Value = serde_json::from_slice(body).unwrap();
+    v.get("events")
+        .and_then(|e| e.as_array())
+        .cloned()
+        .unwrap_or_default()
+}
+
 #[tokio::test]
 async fn test_events_crud_happy_path() {
     let (app, _temp_db) = common::setup_test_app().await;
@@ -25,7 +33,7 @@ async fn test_events_crud_happy_path() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let events: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    let events = listed_events(&body_bytes);
     assert_eq!(events.len(), 0);
 
     // 2. Create an event
@@ -109,7 +117,7 @@ async fn test_events_crud_happy_path() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let events: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    let events = listed_events(&body_bytes);
     assert_eq!(events.len(), 1);
     assert_eq!(events[0]["title"], "Team Standup");
 
@@ -165,7 +173,11 @@ async fn test_events_create_validation() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let error: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(error["error"].as_str().unwrap().contains("title"));
+    assert!(error["error"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("title"));
 
     // Empty title should return 400
     let create_body = json!({
@@ -310,9 +322,9 @@ async fn test_events_date_filtering() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let events: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
-    // Should return events within the date range
-    assert!(events.len() >= 1);
+    let events = listed_events(&body_bytes);
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["title"], "Event 2");
 }
 
 #[tokio::test]
@@ -324,8 +336,7 @@ async fn test_events_recurring() {
         "title": "Weekly Meeting",
         "startDate": "2026-06-10T10:00:00Z",
         "endDate": "2026-06-10T11:00:00Z",
-        "recurring": true,
-        "recurrenceRule": "FREQ=WEEKLY;BYDAY=WE"
+        "recurrence": "weekly"
     });
     let response = app
         .clone()
@@ -343,5 +354,5 @@ async fn test_events_recurring() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let created_event: Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(created_event["title"], "Weekly Meeting");
-    assert_eq!(created_event["recurring"], true);
+    assert_eq!(created_event["recurrence"], "weekly");
 }

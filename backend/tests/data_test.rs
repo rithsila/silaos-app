@@ -26,14 +26,14 @@ async fn test_get_stats_endpoint() {
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
-    
+
     // Verify stats structure
     assert!(stats.get("tasks").is_some());
     assert!(stats.get("projects").is_some());
     assert!(stats.get("habits").is_some());
     assert!(stats.get("notes").is_some());
     assert!(stats.get("goals").is_some());
-    
+
     // All counts should be 0 initially
     assert_eq!(stats["tasks"], 0);
     assert_eq!(stats["projects"], 0);
@@ -92,7 +92,7 @@ async fn test_stats_with_data() {
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
-    
+
     assert_eq!(stats["tasks"], 3);
     assert_eq!(stats["notes"], 2);
 }
@@ -129,7 +129,7 @@ async fn test_export_data_endpoint() {
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let export_data: Value = serde_json::from_slice(&body_bytes).unwrap();
-    
+
     // Verify export structure
     assert!(export_data.get("tasks").is_some());
     assert!(export_data.get("projects").is_some());
@@ -137,7 +137,7 @@ async fn test_export_data_endpoint() {
     assert!(export_data.get("notes").is_some());
     assert!(export_data.get("goals").is_some());
     assert!(export_data.get("exportDate").is_some());
-    
+
     // Verify tasks were exported
     let tasks = export_data["tasks"].as_array().unwrap();
     assert_eq!(tasks.len(), 1);
@@ -268,7 +268,7 @@ async fn test_backup_and_restore() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let tasks: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
     let task_id = tasks[0]["id"].as_str().unwrap();
-    
+
     app.clone()
         .oneshot(
             Request::builder()

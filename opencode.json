@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "lifeos": {
+        "type": "local",
+        "command": ["bun", "run", "mcp/lifeos-server.ts"],
+        "cwd": ".",
+        "codemode": false,
+        "environment": {
+          "LIFEOS_URL": "http://10.10.22.63:3000"
+        }
+      }
+    }
+  }
+}

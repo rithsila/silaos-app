@@ -4,6 +4,8 @@ import { create } from 'zustand'
 
 export interface CalendarEvent {
   id: string
+  /** Unique per expanded occurrence; keep `id` as the stored row id. */
+  instanceKey?: string
   title: string
   description: string | null
   startDate: string

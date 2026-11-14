@@ -182,7 +182,11 @@ export function SettingsPage() {
   const handleReset = async () => {
     setIsResetting(true)
     try {
-      const response = await fetch('/api/data/reset', { method: 'DELETE' })
+      const response = await fetch('/api/data/reset', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'RESET_ALL_DATA' }),
+      })
       const result = await response.json()
       if (result.success) {
         showToast.success(t('toast.dataReset'), t('toast.dataCleared'))

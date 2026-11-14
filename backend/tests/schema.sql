@@ -260,6 +260,7 @@ CREATE TABLE "Habit" (
     "unit" TEXT,
     "reminderEnabled" BOOLEAN NOT NULL DEFAULT false,
     "reminderTime" TEXT,
+    "gapForgiveness" INTEGER NOT NULL DEFAULT 0,
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" INTEGER NOT NULL,
     "updatedAt" INTEGER NOT NULL

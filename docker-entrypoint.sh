@@ -4,8 +4,17 @@ set -e
 # Ensure data directory exists
 mkdir -p /app/data
 
-echo "→ Running database migrations..."
-node node_modules/prisma/build/index.js migrate deploy
+echo "→ Applying SQLite schema..."
+DBFILE="${DATABASE_URL#file:}"
+DBFILE="${DBFILE:-/app/data/prod.db}"
+if [ ! -s "$DBFILE" ] || [ "$(sqlite3 "$DBFILE" "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Task';")" = "0" ]; then
+  for f in /app/prisma/migrations/*/migration.sql; do
+    echo "  $f"
+    sqlite3 "$DBFILE" < "$f"
+  done
+else
+  echo "  schema already present"
+fi
 
 echo "→ Starting Life OS backend on port 8080..."
 PORT=8080 DATABASE_URL="${DATABASE_URL:-file:/app/data/prod.db}" \

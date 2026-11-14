@@ -75,15 +75,21 @@ async fn test_search_across_entities() {
     // Verify results contain our created items
     let tasks = results["tasks"].as_array().unwrap();
     assert!(tasks.len() > 0);
-    assert!(tasks.iter().any(|t| t["title"].as_str().unwrap().contains("Rust")));
+    assert!(tasks
+        .iter()
+        .any(|t| t["title"].as_str().unwrap().contains("Rust")));
 
     let notes = results["notes"].as_array().unwrap();
     assert!(notes.len() > 0);
-    assert!(notes.iter().any(|n| n["title"].as_str().unwrap().contains("Rust")));
+    assert!(notes
+        .iter()
+        .any(|n| n["title"].as_str().unwrap().contains("Rust")));
 
     let projects = results["projects"].as_array().unwrap();
     assert!(projects.len() > 0);
-    assert!(projects.iter().any(|p| p["name"].as_str().unwrap().contains("Rust")));
+    assert!(projects
+        .iter()
+        .any(|p| p["name"].as_str().unwrap().contains("Rust")));
 }
 
 #[tokio::test]
@@ -221,9 +227,9 @@ async fn test_search_in_descriptions() {
     // Should find the task by description
     let tasks = results["tasks"].as_array().unwrap();
     assert!(tasks.len() > 0);
-    assert!(tasks.iter().any(|t| 
-        t["description"].as_str().unwrap_or("").contains("roadmap")
-    ));
+    assert!(tasks
+        .iter()
+        .any(|t| t["description"].as_str().unwrap_or("").contains("roadmap")));
 }
 
 #[tokio::test]
@@ -354,7 +360,7 @@ async fn test_search_special_characters() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/search?q=%23123")  // URL encoded #123
+                .uri("/api/search?q=%23123") // URL encoded #123
                 .body(Body::empty())
                 .unwrap(),
         )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import DOMPurify from 'isomorphic-dompurify'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import {
   Plus,
@@ -509,7 +510,7 @@ export function JournalPage() {
               {/* Content without gratitude section */}
               <div 
                 className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: selectedEntry.content.replace(/## Gratitude[\s\S]*$/, '').trim() }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedEntry.content.replace(/## Gratitude[\s\S]*$/, '').trim()) }}
               />
 
               {/* Gratitude in detail panel */}

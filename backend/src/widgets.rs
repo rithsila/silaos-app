@@ -34,11 +34,9 @@ pub(crate) struct SaveWidgetsBody {
 pub(crate) async fn get_widgets(
     State(state): State<AppState>,
 ) -> Result<Json<WidgetsResponse>, AppError> {
-    let row = sqlx::query(
-        "SELECT layout FROM Workspace WHERE isDefault = 1 LIMIT 1",
-    )
-    .fetch_optional(&state.db)
-    .await?;
+    let row = sqlx::query("SELECT layout FROM Workspace WHERE isDefault = 1 LIMIT 1")
+        .fetch_optional(&state.db)
+        .await?;
 
     if let Some(r) = row {
         let layout: Option<String> = r.try_get("layout").ok().flatten();
@@ -73,13 +71,11 @@ pub(crate) async fn save_widgets(
     let now = now_ms();
 
     // Try to update the existing default workspace first.
-    let result = sqlx::query(
-        "UPDATE Workspace SET layout = ?, updatedAt = ? WHERE isDefault = 1",
-    )
-    .bind(&layout)
-    .bind(now)
-    .execute(&state.db)
-    .await?;
+    let result = sqlx::query("UPDATE Workspace SET layout = ?, updatedAt = ? WHERE isDefault = 1")
+        .bind(&layout)
+        .bind(now)
+        .execute(&state.db)
+        .await?;
 
     if result.rows_affected() == 0 {
         // No default workspace yet — create one.

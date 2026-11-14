@@ -83,6 +83,17 @@ async fn fetch_task_mini(
     }))
 }
 
+/// Parse list query bounds. Date-only `endDate` is treated as end-of-day UTC
+/// so `?endDate=2026-06-15` includes events later that day.
+fn query_bound_ms(raw: &str, end_of_day: bool) -> Option<i64> {
+    let ms = value_to_ms(&Value::String(raw.to_string()))?;
+    if end_of_day && chrono::NaiveDate::parse_from_str(raw, "%Y-%m-%d").is_ok() {
+        Some(ms + 86_400_000 - 1)
+    } else {
+        Some(ms)
+    }
+}
+
 pub async fn list_events(
     State(st): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
@@ -90,7 +101,7 @@ pub async fn list_events(
     let limit = params
         .get("limit")
         .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(50);
+        .unwrap_or(500);
     let offset = params
         .get("offset")
         .and_then(|v| v.parse::<i64>().ok())
@@ -101,15 +112,13 @@ pub async fn list_events(
         QueryBuilder::new("SELECT COUNT(*) FROM CalendarEvent WHERE 1=1");
 
     if let Some(sd) = params.get("startDate") {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(sd) {
-            let ms = dt.timestamp_millis();
+        if let Some(ms) = query_bound_ms(sd, false) {
             qb.push(" AND startDate >= ").push_bind(ms);
             count_qb.push(" AND startDate >= ").push_bind(ms);
         }
     }
     if let Some(ed) = params.get("endDate") {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ed) {
-            let ms = dt.timestamp_millis();
+        if let Some(ms) = query_bound_ms(ed, true) {
             qb.push(" AND startDate <= ").push_bind(ms);
             count_qb.push(" AND startDate <= ").push_bind(ms);
         }
