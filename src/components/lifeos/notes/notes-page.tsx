@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -344,13 +344,13 @@ export function NotesPage() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">{t('notes.quickNotes')}</TooltipContent>
                 </Tooltip>
-                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                  <DialogTrigger asChild>
+                <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <SheetTrigger asChild>
                     <Button size="icon" variant="ghost" className="h-7 w-7 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600"><Plus className="h-4 w-4" /></Button>
-                  </DialogTrigger>
-                  <DialogContent aria-describedby={undefined}>
-                    <DialogHeader><DialogTitle>{t('notes.newNote')}</DialogTitle><DialogDescription className="sr-only">Create a new note</DialogDescription></DialogHeader>
-                    <div className="space-y-4 py-2">
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-[460px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+                    <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('notes.newNote')}</SheetTitle><SheetDescription className="sr-only">Create a new note</SheetDescription></SheetHeader>
+                    <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
                       <div>
                         <label className="text-sm font-medium mb-1.5 block">{t('notes.noteTitle')}</label>
                         <Input placeholder={t('notes.noteTitle')} value={newNote.title} onChange={e => setNewNote(p => ({ ...p, title: e.target.value }))} />
@@ -375,12 +375,12 @@ export function NotesPage() {
                         </div>
                       </div>
                     </div>
-                    <DialogFooter>
-                      <DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose>
+                    <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0">
+                      <SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose>
                       <Button onClick={handleAddNote} disabled={createNoteMutation.isPending}>{t('create')}</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
               </div>
             </div>
             <div className="relative">

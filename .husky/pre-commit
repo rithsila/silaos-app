@@ -1,0 +1,5 @@
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
+if [ -n "$STAGED" ]; then
+  echo "$STAGED" | xargs bunx eslint
+fi
+bun run test

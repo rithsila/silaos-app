@@ -26,7 +26,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -501,15 +502,15 @@ export function FinancePage() {
       {/* Account Cards */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('finance.accounts')}</h2>
-        <Dialog open={createAccountDialogOpen} onOpenChange={setCreateAccountDialogOpen}>
-          <DialogTrigger asChild>
+        <Sheet open={createAccountDialogOpen} onOpenChange={setCreateAccountDialogOpen}>
+          <SheetTrigger asChild>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
               <Plus className="h-3.5 w-3.5" />{t('finance.newAccount')}
             </Button>
-          </DialogTrigger>
-          <DialogContent aria-describedby={undefined}>
-            <DialogHeader><DialogTitle>{t('finance.newAccount')}</DialogTitle><DialogDescription className="sr-only">Add a new finance account</DialogDescription></DialogHeader>
-            <div className="space-y-4 py-2">
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+            <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('finance.newAccount')}</SheetTitle><SheetDescription className="sr-only">Add a new finance account</SheetDescription></SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
               <div><label className="text-sm font-medium mb-1.5 block">{t('finance.accountName')}</label><Input placeholder={t('finance.accountNamePlaceholder')} value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium mb-1.5 block">{t('finance.type')}</label><Select value={newAccount.type} onValueChange={v => setNewAccount(p => ({ ...p, type: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="checking">{t('finance.checking')}</SelectItem><SelectItem value="savings">{t('finance.savings')}</SelectItem><SelectItem value="credit">{t('finance.credit')}</SelectItem><SelectItem value="investment">{t('finance.investment')}</SelectItem><SelectItem value="cash">{t('finance.cash')}</SelectItem></SelectContent></Select></div>
@@ -520,9 +521,9 @@ export function FinancePage() {
                 <div><label className="text-sm font-medium mb-1.5 block">{t('finance.color')}</label><div className="flex gap-1.5 mt-1 flex-wrap">{['#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899'].map(c => (<button key={c} className={cn('w-6 h-6 rounded-full transition-all', newAccount.color === c ? 'ring-2 ring-offset-2 ring-primary scale-110' : 'hover:scale-105')} style={{ backgroundColor: c }} onClick={() => setNewAccount(p => ({ ...p, color: c }))} />))}</div></div>
               </div>
             </div>
-            <DialogFooter><DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose><Button onClick={handleAddAccount} disabled={createAccountMutation.isPending}>{t('create')}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0"><SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose><Button onClick={handleAddAccount} disabled={createAccountMutation.isPending}>{t('create')}</Button></SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -950,11 +951,11 @@ export function FinancePage() {
             <FileDown className="h-3.5 w-3.5" />PDF Dışa Aktar
           </Button>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('finance.newTransaction')}</Button></DialogTrigger>
-          <DialogContent aria-describedby={undefined}>
-            <DialogHeader><DialogTitle>{t('finance.newTransaction')}</DialogTitle><DialogDescription className="sr-only">Add a new financial transaction</DialogDescription></DialogHeader>
-            <div className="space-y-4 py-2">
+        <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <SheetTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('finance.newTransaction')}</Button></SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+            <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('finance.newTransaction')}</SheetTitle><SheetDescription className="sr-only">Add a new financial transaction</SheetDescription></SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
               <div><label className="text-sm font-medium mb-1.5 block">{t('finance.description')}</label><Input placeholder={t('finance.whatWasThisFor')} value={newTransaction.description} onChange={e => setNewTransaction(p => ({ ...p, description: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium mb-1.5 block">{t('finance.amount')}</label><Input type="number" placeholder="0.00" value={newTransaction.amount} onChange={e => setNewTransaction(p => ({ ...p, amount: e.target.value }))} /></div>
@@ -966,9 +967,9 @@ export function FinancePage() {
               </div>
               <div><label className="text-sm font-medium mb-1.5 block">{t('finance.date')}</label><Input type="date" value={newTransaction.date} onChange={e => setNewTransaction(p => ({ ...p, date: e.target.value }))} /></div>
             </div>
-            <DialogFooter><DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose><Button onClick={handleAddTransaction} disabled={createTransactionMutation.isPending}>{t('add')}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0"><SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose><Button onClick={handleAddTransaction} disabled={createTransactionMutation.isPending}>{t('add')}</Button></SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Content Views */}

@@ -31,7 +31,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -522,13 +523,13 @@ export function HabitsPage() {
             <TabsTrigger value="analytics" className="text-xs px-3 h-6"><BarChart3 className="h-3.5 w-3.5 mr-1" />{t('habits.heatmap')}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
+        <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <SheetTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('habits.newHabit')}</Button>
-          </DialogTrigger>
-          <DialogContent aria-describedby={undefined}>
-            <DialogHeader><DialogTitle>{t('habits.newHabit')}</DialogTitle><DialogDescription className="sr-only">{t('habits.createHabitSrOnly')}</DialogDescription></DialogHeader>
-            <div className="space-y-4 py-2">
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+            <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('habits.newHabit')}</SheetTitle><SheetDescription className="sr-only">{t('habits.createHabitSrOnly')}</SheetDescription></SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
               <div><label className="text-sm font-medium mb-1.5 block">{t('habits.name')}</label><Input placeholder={t('habits.habitName') + '...'} value={newHabit.name} onChange={e => setNewHabit(p => ({ ...p, name: e.target.value }))} /></div>
               <div><label className="text-sm font-medium mb-1.5 block">{t('habits.description')}</label><Input placeholder={t('habits.briefDescription')} value={newHabit.description} onChange={e => setNewHabit(p => ({ ...p, description: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-4">
@@ -563,9 +564,9 @@ export function HabitsPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter><DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose><Button onClick={handleAddHabit} disabled={createHabitMutation.isPending}>{t('create')}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0"><SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose><Button onClick={handleAddHabit} disabled={createHabitMutation.isPending}>{t('create')}</Button></SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Content */}

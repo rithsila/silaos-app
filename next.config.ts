@@ -8,6 +8,7 @@ const config = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: ["life-os-project.orca.localhost", "*.orca.localhost", "192.168.110.31"],
   // Pin the file-tracing root to this project so the standalone build emits
   // `.next/standalone/server.js` at the root (Next can otherwise infer a parent
   // directory as the workspace root and nest the output).
@@ -35,7 +36,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              "connect-src 'self' https://api.frankfurter.app",
               "frame-ancestors 'none'",
             ].join("; "),
           },
@@ -43,9 +44,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Proxy the ported modules to the Rust backend. Only routes listed here are
-  // forwarded; every other /api/* path is still served by the Next.js route
-  // handlers. As more modules move to Rust, add their paths below.
+  // Proxy API prefixes to the Rust backend. This is an allowlist — unlisted
+  // /api/* paths are not served by Next (there are no App Router API routes).
   async rewrites() {
     const backend = process.env.BACKEND_URL || "http://localhost:8080";
     const proxy = (prefix: string) => [

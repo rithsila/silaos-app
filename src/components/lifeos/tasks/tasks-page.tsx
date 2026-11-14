@@ -35,13 +35,13 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   ContextMenu,
@@ -789,22 +789,23 @@ export function TasksPage() {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogTrigger asChild>
+              <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                <SheetTrigger asChild>
                   <Button size="sm">
                     <Plus className="h-4 w-4 mr-1.5" />{t('tasks.addTask')}
                   </Button>
-                </DialogTrigger>
-              <DialogContent
+                </SheetTrigger>
+              <SheetContent
+                side="right"
                 aria-describedby={undefined}
-                className="sm:max-w-[560px] p-0 overflow-hidden gap-0 border-0 shadow-2xl"
+                className="w-full sm:max-w-[520px] p-0 overflow-hidden gap-0 border-l shadow-2xl flex flex-col"
               >
                 {/* Gradient accent strip */}
                 <div
-                  className="h-1 w-full"
+                  className="h-1 w-full shrink-0"
                   style={{ background: `linear-gradient(90deg, ${accentHex}, ${accentHex}66, transparent)` }}
                 />
-                <DialogHeader className="px-6 pt-5 pb-3">
+                <SheetHeader className="px-6 pt-5 pb-3 shrink-0">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -813,19 +814,19 @@ export function TasksPage() {
                       <Sparkles className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <DialogTitle className="text-base font-semibold leading-tight">
+                      <SheetTitle className="text-base font-semibold leading-tight">
                         {t('tasks.newTask')}
-                      </DialogTitle>
+                      </SheetTitle>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {t('tasks.composer.subtitle')}
                       </p>
                     </div>
                   </div>
-                  <DialogDescription className="sr-only">Create a new task for your workflow</DialogDescription>
-                </DialogHeader>
+                  <SheetDescription className="sr-only">Create a new task for your workflow</SheetDescription>
+                </SheetHeader>
 
                 <div
-                  className="px-6 pb-4 space-y-4"
+                  className="flex-1 overflow-y-auto px-6 pb-4 space-y-4"
                   onKeyDown={(e) => {
                     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                       e.preventDefault()
@@ -1086,7 +1087,7 @@ export function TasksPage() {
                   </div>
                 </div>
 
-                <DialogFooter className="px-6 py-3 border-t border-border/60 bg-muted/20 flex items-center sm:justify-between gap-2">
+                <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center sm:justify-between gap-2 shrink-0">
                   <span className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     {t('tasks.composer.cmdEnter')}
                     <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border/70 bg-background text-[10px] font-medium">
@@ -1095,9 +1096,9 @@ export function TasksPage() {
                     {t('tasks.composer.cmdEnterAction')}
                   </span>
                   <div className="flex items-center gap-2 ml-auto">
-                    <DialogClose asChild>
+                    <SheetClose asChild>
                       <Button variant="ghost" size="sm">{t('cancel')}</Button>
-                    </DialogClose>
+                    </SheetClose>
                     <Button
                       size="sm"
                       onClick={handleAddTask}
@@ -1109,9 +1110,9 @@ export function TasksPage() {
                       {t('tasks.createTask')}
                     </Button>
                   </div>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
 
             {/* ─── Edit Task Dialog ──────────────────────────────────── */}
             <Dialog open={editDialogOpen} onOpenChange={(o) => { setEditDialogOpen(o); if (!o) setEditTask(null) }}>

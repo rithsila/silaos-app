@@ -25,7 +25,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -274,11 +275,11 @@ export function JournalPage() {
                 <TabsTrigger value="list" className="text-xs px-3 h-6"><List className="h-3.5 w-3.5 mr-1" />{t('tasks.list')}</TabsTrigger>
               </TabsList>
             </Tabs>
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('journal.newEntry')}</Button></DialogTrigger>
-              <DialogContent className="max-w-lg" aria-describedby={undefined}>
-                <DialogHeader><DialogTitle>{t('journal.newEntry')}</DialogTitle><DialogDescription className="sr-only">Write a new journal entry</DialogDescription></DialogHeader>
-                <div className="space-y-4 py-2">
+            <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <SheetTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('journal.newEntry')}</Button></SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+                <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('journal.newEntry')}</SheetTitle><SheetDescription className="sr-only">Write a new journal entry</SheetDescription></SheetHeader>
+                <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="flex-1"><label className="text-sm font-medium mb-1.5 block">{t('journal.titleOptional')}</label><Input placeholder={t('journal.howWasYourDay')} value={newEntry.title} onChange={e => setNewEntry(p => ({ ...p, title: e.target.value }))} /></div>
                     <div className="pt-5">
@@ -346,9 +347,9 @@ export function JournalPage() {
                   </div>
                   <div><label className="text-sm font-medium mb-1.5 block">{t('tasks.tags')}</label><Input placeholder="tag1, tag2" value={newEntry.tags} onChange={e => setNewEntry(p => ({ ...p, tags: e.target.value }))} /></div>
                 </div>
-                <DialogFooter><DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose><Button onClick={handleAddEntry} disabled={createEntryMutation.isPending}>{t('journal.saveEntry')}</Button></DialogFooter>
-              </DialogContent>
-            </Dialog>
+                <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0"><SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose><Button onClick={handleAddEntry} disabled={createEntryMutation.isPending}>{t('journal.saveEntry')}</Button></SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder={`${t('search')}...`} className="pl-9 h-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
         </div>

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -278,19 +278,19 @@ export function GoalsPage() {
             </Button>
           ))}
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('goals.newGoal')}</Button></DialogTrigger>
-          <DialogContent aria-describedby={undefined}>
-            <DialogHeader><DialogTitle>{t('goals.newGoal')}</DialogTitle><DialogDescription className="sr-only">{t('goals.createGoalSrOnly')}</DialogDescription></DialogHeader>
-            <div className="space-y-4 py-2">
+        <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <SheetTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1.5" />{t('goals.newGoal')}</Button></SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-[480px] p-0 gap-0 flex flex-col" aria-describedby={undefined}>
+            <SheetHeader className="px-6 pt-5 pb-3 shrink-0"><SheetTitle>{t('goals.newGoal')}</SheetTitle><SheetDescription className="sr-only">{t('goals.createGoalSrOnly')}</SheetDescription></SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
               <div><label className="text-sm font-medium mb-1.5 block">{t('goals.goalTitle')}</label><Input placeholder={t('goals.whatDoYouWantToAchieve')} value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} /></div>
               <div><label className="text-sm font-medium mb-1.5 block">{t('goals.description')}</label><Textarea placeholder={t('goals.describeYourGoal')} value={newGoal.description} onChange={e => setNewGoal(p => ({ ...p, description: e.target.value }))} /></div>
               {categoryColorPicker}
               <div><label className="text-sm font-medium mb-1.5 block">{t('goals.targetDate')}</label><Input type="date" value={newGoal.targetDate} onChange={e => setNewGoal(p => ({ ...p, targetDate: e.target.value }))} /></div>
             </div>
-            <DialogFooter><DialogClose asChild><Button variant="outline">{t('cancel')}</Button></DialogClose><Button onClick={handleAddGoal} disabled={createGoalMutation.isPending}>{t('create')}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <SheetFooter className="mt-auto px-6 py-3 border-t border-border/60 bg-muted/20 flex-row items-center justify-end gap-2 shrink-0"><SheetClose asChild><Button variant="outline">{t('cancel')}</Button></SheetClose><Button onClick={handleAddGoal} disabled={createGoalMutation.isPending}>{t('create')}</Button></SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Goals List */}

@@ -2,7 +2,15 @@
   "name": "life-os",
   "version": "1.0.0",
   "description": "🧠 A beautiful, local-first personal life management system built with Next.js 16",
-  "keywords": ["life-os", "personal-os", "productivity", "nextjs", "typescript", "tailwindcss", "prisma"],
+  "keywords": [
+    "life-os",
+    "personal-os",
+    "productivity",
+    "nextjs",
+    "typescript",
+    "tailwindcss",
+    "prisma"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/life-os/life-os.git"
@@ -41,7 +49,8 @@
     "docker:start": "bash start.sh",
     "docker:stop": "bash start.sh --stop",
     "docker:reset": "bash start.sh --reset",
-    "start": "bash start.sh"
+    "start": "bash start.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -119,6 +128,7 @@
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "msw": "^2.6.8",
     "tailwindcss": "^4",
