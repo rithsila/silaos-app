@@ -19,6 +19,7 @@ import { LearningPage } from './learning/learning-page'
 import { CalendarPage } from './calendar/calendar-page'
 import { TimePage } from './time/time-page'
 import { SettingsPage } from './settings/settings-page'
+import { WeeklyReviewPage } from './dashboard/weekly-review'
 import { KeyboardShortcutsHelp, useKeyboardShortcuts } from './keyboard-shortcuts'
 import { FocusModeOverlay } from './focus-mode-overlay'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -36,6 +37,7 @@ const moduleComponents: Record<string, React.ComponentType> = {
   calendar: CalendarPage,
   time: TimePage,
   settings: SettingsPage,
+  'weekly-review': WeeklyReviewPage,
 }
 
 export function AppShell() {

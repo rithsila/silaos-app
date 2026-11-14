@@ -60,6 +60,7 @@ export function Header() {
     calendar: t('nav.calendar'),
     time: t('nav.timeTracker'),
     settings: t('nav.settings'),
+    'weekly-review': t('weeklyReview.title'),
   }
 
   const moduleGroups: Record<ModuleId, string> = {
@@ -74,6 +75,7 @@ export function Header() {
     calendar: t('groups.productivity'),
     time: t('groups.productivity'),
     settings: t('groups.settings'),
+    'weekly-review': t('groups.home'),
   }
 
   const userName = profile?.name || ''

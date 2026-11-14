@@ -210,7 +210,7 @@ export function CalendarPage() {
 
   const handleAddEvent = useCallback(() => {
     if (!newEvent.title.trim()) {
-      showToast.error(t('calendar.titleRequired') || 'Başlık gereklidir')
+      showToast.error(t('calendar.titleRequired') || 'Title is required')
       return
     }
     // Create proper ISO 8601 date strings with timezone
@@ -237,7 +237,7 @@ export function CalendarPage() {
         showToast.success(t('toast.created'))
       },
       onError: (error: Error) => {
-        showToast.error(t('toast.error') || 'Bir hata oluştu: ' + error.message)
+        showToast.error(t('toast.error') || 'An error occurred: ' + error.message)
       }
     })
   }, [newEvent, createEventMutation, t])
@@ -249,7 +249,7 @@ export function CalendarPage() {
 
   const handleUpdateEvent = useCallback(() => {
     if (!editEvent || !editEvent.title.trim()) {
-      showToast.error(t('calendar.titleRequired') || 'Başlık gereklidir')
+      showToast.error(t('calendar.titleRequired') || 'Title is required')
       return
     }
     updateEventMutation.mutate({
@@ -265,7 +265,7 @@ export function CalendarPage() {
         showToast.success(t('toast.saved'))
       },
       onError: (error: Error) => {
-        showToast.error(t('toast.error') || 'Bir hata oluştu: ' + error.message)
+        showToast.error(t('toast.error') || 'An error occurred: ' + error.message)
       }
     })
   }, [editEvent, updateEventMutation, t])

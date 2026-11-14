@@ -531,18 +531,18 @@ export function TasksPage() {
     selectedIds.forEach(id => {
       updateTaskMutation.mutate({ id, status: 'done' })
     })
-    showToast.success(`${selectedIds.size} görev tamamlandı`, '')
+    showToast.success(`${selectedIds.size} tasks completed`, '')
     setSelectedIds(new Set())
     setSelectionMode(false)
   }, [selectedIds, updateTaskMutation])
 
   const handleBulkDelete = useCallback(() => {
-    if (!confirm(`${selectedIds.size} görevi silmek istediğinizden emin misiniz?`)) return
+    if (!confirm(`Delete ${selectedIds.size} selected tasks?`)) return
     selectedIds.forEach(id => {
       deleteTaskMutation.mutate(id)
       if (selectedTaskId === id) setSelectedTaskId(null)
     })
-    showToast.info(`${selectedIds.size} görev silindi`, '')
+    showToast.info(`${selectedIds.size} tasks deleted`, '')
     setSelectedIds(new Set())
     setSelectionMode(false)
   }, [selectedIds, deleteTaskMutation, selectedTaskId])
@@ -571,7 +571,7 @@ export function TasksPage() {
     }, {
       onSuccess: () => {
         setNewSubtask('')
-        showToast.success('Alt görev eklendi', '')
+        showToast.success('Subtask added', '')
       }
     })
   }, [newSubtask, selectedTaskId, createTaskMutation])
@@ -629,7 +629,7 @@ export function TasksPage() {
       <Separator />
       {/* Sub-tasks */}
       <div className="space-y-2">
-        <p className="text-sm font-medium">Alt Görevler</p>
+        <p className="text-sm font-medium">Subtasks</p>
         {tasks.filter(t => t.parentTaskId === selectedTask.id).map(sub => (
           <div key={sub.id} className="flex items-center gap-2">
             <Checkbox
@@ -644,7 +644,7 @@ export function TasksPage() {
         ))}
         <div className="flex items-center gap-2 mt-1">
           <Input
-            placeholder="Alt görev ekle..."
+            placeholder="Add subtask..."
             value={newSubtask}
             onChange={(e) => setNewSubtask(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddSubtask() }}
@@ -728,7 +728,7 @@ export function TasksPage() {
                   }}
                 >
                   <MousePointer2 className="h-3.5 w-3.5" />
-                  {selectionMode ? 'İptal' : 'Seç'}
+                  {selectionMode ? 'Cancel' : 'Select'}
                 </Button>
               )}
               <div className="flex items-center gap-1">
@@ -1015,7 +1015,7 @@ export function TasksPage() {
                             if (!r || r === 'none') return t('tasks.composer.recurrenceNone')
                             return t(`tasks.composer.recurrence${r.charAt(0).toUpperCase() + r.slice(1)}`) !== `tasks.composer.recurrence${r.charAt(0).toUpperCase() + r.slice(1)}`
                               ? t(`tasks.composer.recurrence${r.charAt(0).toUpperCase() + r.slice(1)}`)
-                              : ({ daily: 'Günlük', weekly: 'Haftalık', monthly: 'Aylık' } as Record<string, string>)[r]
+                              : ({ daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' } as Record<string, string>)[r]
                           })()}
                           <ChevronDown className="h-3 w-3 opacity-60" />
                         </button>
@@ -1023,9 +1023,9 @@ export function TasksPage() {
                       <PopoverContent align="start" className="w-44 p-1">
                         {([
                           ['none', t('tasks.composer.recurrenceNone')],
-                          ['daily', 'Günlük'],
-                          ['weekly', 'Haftalık'],
-                          ['monthly', 'Aylık'],
+                          ['daily', 'Daily'],
+                          ['weekly', 'Weekly'],
+                          ['monthly', 'Monthly'],
                         ] as const).map(([val, label]) => {
                           const active = (newTask.recurrence ?? 'none') === val
                           return (
@@ -1315,13 +1315,13 @@ export function TasksPage() {
       {/* Bulk Action Bar */}
       {selectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-card border border-border rounded-full shadow-lg px-4 py-2 z-50">
-          <span className="text-sm font-medium">{selectedIds.size} seçildi</span>
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
           <Separator orientation="vertical" className="h-4" />
           <Button size="sm" variant="ghost" onClick={handleBulkDone}>
-            <Check className="h-4 w-4 mr-1" /> Tamamla
+            <Check className="h-4 w-4 mr-1" /> Complete
           </Button>
           <Button size="sm" variant="ghost" className="text-destructive" onClick={handleBulkDelete}>
-            <Trash2 className="h-4 w-4 mr-1" /> Sil
+            <Trash2 className="h-4 w-4 mr-1" /> Delete
           </Button>
         </div>
       )}
@@ -1385,7 +1385,7 @@ function Listview({ tasks, selectedTaskId, celebratingTaskId, onSelectTask, onTo
               }
             }}
           />
-          <span className="text-xs text-muted-foreground">{allSelected ? 'Hiçbirini seçme' : 'Hepsini seç'}</span>
+          <span className="text-xs text-muted-foreground">{allSelected ? 'Deselect all' : 'Select all'}</span>
         </div>
       )}
       {tasks.map((task) => {
@@ -1483,7 +1483,7 @@ function Listview({ tasks, selectedTaskId, celebratingTaskId, onSelectTask, onTo
                 <>
                   <ContextMenuItem onClick={() => onToggleSelect?.(task.id)}>
                     <Check className="h-3.5 w-3.5 mr-2" />
-                    {isSelected ? 'Seçimi kaldır' : 'Seç'}
+                    {isSelected ? 'Deselect' : 'Select'}
                   </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem 
@@ -1494,7 +1494,7 @@ function Listview({ tasks, selectedTaskId, celebratingTaskId, onSelectTask, onTo
                     }}
                   >
                     <Check className="h-3.5 w-3.5 mr-2" />
-                    Seçilileri tamamla
+                    Complete selected
                   </ContextMenuItem>
                   <ContextMenuItem 
                     disabled={selectedIds.size === 0}
@@ -1505,7 +1505,7 @@ function Listview({ tasks, selectedTaskId, celebratingTaskId, onSelectTask, onTo
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-2" />
-                    Seçilileri sil
+                    Delete selected
                   </ContextMenuItem>
                 </>
               ) : (

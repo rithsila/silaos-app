@@ -483,7 +483,7 @@ export function HabitsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 text-muted-foreground" />Günlük Hedef</label>
+                  <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 text-muted-foreground" />Daily Goal</label>
                   <div className="flex items-center gap-2">
                     <button className="w-7 h-7 rounded border border-border flex items-center justify-center hover:bg-accent" onClick={() => setEditHabit(p => p && ({ ...p, targetCount: Math.max(1, p.targetCount - 1) }))}><Minus className="h-3 w-3" /></button>
                     <span className="text-sm font-medium w-8 text-center">{editHabit.targetCount}</span>
@@ -491,7 +491,7 @@ export function HabitsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Birim</label>
+                  <label className="text-sm font-medium mb-1.5 block">Unit</label>
                   <Input placeholder="glass, km, min..." value={editHabit.unit} onChange={e => setEditHabit(p => p && ({ ...p, unit: e.target.value }))} />
                 </div>
               </div>
@@ -538,7 +538,7 @@ export function HabitsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 text-muted-foreground" />Günlük Hedef</label>
+                  <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 text-muted-foreground" />Daily Goal</label>
                   <div className="flex items-center gap-2">
                     <button className="w-7 h-7 rounded border border-border flex items-center justify-center hover:bg-accent" onClick={() => setNewHabit(p => ({ ...p, targetCount: Math.max(1, p.targetCount - 1) }))}><Minus className="h-3 w-3" /></button>
                     <span className="text-sm font-medium w-8 text-center">{newHabit.targetCount}</span>
@@ -546,7 +546,7 @@ export function HabitsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Birim</label>
+                  <label className="text-sm font-medium mb-1.5 block">Unit</label>
                   <Input placeholder="glass, km, min..." value={newHabit.unit} onChange={e => setNewHabit(p => ({ ...p, unit: e.target.value }))} />
                 </div>
               </div>

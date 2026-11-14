@@ -54,7 +54,6 @@ import { useTranslation } from '@/lib/i18n'
 import { useDashboard, useTasks, useEvents, useHabits, useCreateTask, useCreateNote, useCreateHabit, useDashboardWidgets, useSaveDashboardWidgets } from '@/lib/api/hooks'
 import { showToast } from '@/lib/toast'
 import { JournalPrompts } from '@/components/lifeos/dashboard/journal-prompts'
-import { WeeklyReview } from '@/components/lifeos/dashboard/weekly-review'
 import { QuickCapture } from '@/components/lifeos/dashboard/quick-capture'
 import { DailyPlannerWidget } from '@/components/lifeos/dashboard/daily-planner-widget'
 import { OnboardingTips } from '@/components/lifeos/onboarding-tips'
@@ -153,7 +152,6 @@ export function DashboardPage() {
   const { t, tArray } = useTranslation()
   const ringColor = accentColorHexMap[accentColor] || '#10b981'
   const ringColorLight = accentColorLightHexMap[accentColor] || '#34d399'
-  const [weeklyReviewOpen, setWeeklyReviewOpen] = useState(false)
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [moodFeedback, setMoodFeedback] = useState(false)
   const [userName, setUserName] = useState<string>('')
@@ -652,7 +650,7 @@ export function DashboardPage() {
         {/* Action bar at the bottom of the hero */}
         <div className="relative border-t border-border/60 bg-muted/20 px-5 md:px-7 py-2.5 flex flex-wrap items-center justify-end gap-2">
           <Button
-            onClick={() => setWeeklyReviewOpen(true)}
+            onClick={() => setActiveModule('weekly-review')}
             variant="outline"
             size="sm"
             className="rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
@@ -713,7 +711,7 @@ export function DashboardPage() {
                 <div className="border-t border-border/60" />
 
                 <h4 className="font-medium text-sm">{t('dashboard.dashboardWidgets')}</h4>
-                <p className="text-xs text-muted-foreground">{t('dashboard.toggleSections')} · Sürükle ile sırala</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.toggleSections')} · Drag to reorder</p>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleWidgetDragEnd}>
                   <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
                     <div className="space-y-1">
@@ -1167,9 +1165,6 @@ export function DashboardPage() {
           {dashboardWidgets.includes('daily-planner') && <DailyPlannerWidget />}
         </div>
       </div>
-
-      {/* Weekly Review Dialog */}
-      <WeeklyReview open={weeklyReviewOpen} onOpenChange={setWeeklyReviewOpen} />
     </div>
   )
 }

@@ -916,7 +916,7 @@ export function FinancePage() {
                     const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''))
                     let imported = 0
                     const defaultAccountId = accounts[0]?.id
-                    if (!defaultAccountId) { showToast.error('Önce bir hesap ekleyin'); return }
+                    if (!defaultAccountId) { showToast.error('Add an account first'); return }
                     lines.slice(1).forEach(line => {
                       const cols = line.split(',').map(c => c.trim().replace(/"/g, ''))
                       const row: Record<string, string> = {}
@@ -936,19 +936,19 @@ export function FinancePage() {
                         imported++
                       }
                     })
-                    showToast.success(`${imported} işlem içe aktarıldı`)
+                    showToast.success(`Imported ${imported} transactions`)
                     e.target.value = ''
                   }
                   reader.readAsText(file)
                 }}
               />
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs pointer-events-none">
-                <Upload className="h-3.5 w-3.5" />CSV İçe Aktar
+                <Upload className="h-3.5 w-3.5" />Import CSV
               </Button>
             </label>
           )}
           <Button size="sm" variant="outline" onClick={handleExportReport} className="h-8 gap-1.5 text-xs">
-            <FileDown className="h-3.5 w-3.5" />PDF Dışa Aktar
+            <FileDown className="h-3.5 w-3.5" />Export PDF
           </Button>
         </div>
         <Sheet open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -1007,7 +1007,7 @@ export function FinancePage() {
                   <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40">
                     <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
                     <span className="text-sm text-red-700 dark:text-red-300 font-medium">
-                      {b.icon} <strong>{b.name}</strong> bütçesi aşıldı — harcanan: ${b.spent.toFixed(0)} / limit: ${b.budget}
+                      {b.icon} <strong>{b.name}</strong> budget exceeded — spent: ${b.spent.toFixed(0)} / limit: ${b.budget}
                     </span>
                   </div>
                 ))}
@@ -1015,7 +1015,7 @@ export function FinancePage() {
                   <div key={b.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
                     <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
                     <span className="text-sm text-amber-700 dark:text-amber-300">
-                      {b.icon} <strong>{b.name}</strong> bütçesinin {b.percentage}% kullanıldı — ${Math.max(0, b.budget - b.spent).toFixed(0)} kaldı
+                      {b.icon} <strong>{b.name}</strong> budget {b.percentage}% used — ${Math.max(0, b.budget - b.spent).toFixed(0)} left
                     </span>
                   </div>
                 ))}
@@ -1124,7 +1124,7 @@ export function FinancePage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{t('finance.monthlySpendingTrend')}</CardTitle>
-              <CardDescription className="text-xs">Gelir (yeşil) vs Harcama (kırmızı)</CardDescription>
+              <CardDescription className="text-xs">Income (green) vs Expense (red)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-72 bg-gradient-to-b from-muted/20 to-transparent rounded-lg p-2">
@@ -1135,8 +1135,8 @@ export function FinancePage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
                       <Tooltip formatter={(value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
-                      <Bar dataKey="income" fill={accentHex} radius={[3, 3, 0, 0]} name="Gelir" />
-                      <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} name="Harcama" />
+                      <Bar dataKey="income" fill={accentHex} radius={[3, 3, 0, 0]} name="Income" />
+                      <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} name="Expense" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1167,7 +1167,7 @@ export function FinancePage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Kategori Dağılımı</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Category Breakdown</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {spendingByCategory.slice(0, 6).map(cat => {

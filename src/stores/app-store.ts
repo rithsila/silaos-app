@@ -13,6 +13,7 @@ export type ModuleId =
   | 'calendar'
   | 'time'
   | 'settings'
+  | 'weekly-review'
 
 interface AppState {
   // Navigation

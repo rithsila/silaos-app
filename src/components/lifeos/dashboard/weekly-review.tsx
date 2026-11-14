@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   CheckSquare,
   Repeat,
@@ -17,15 +16,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
-  Loader2,
+  ArrowLeft,
+  RefreshCw,
 } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -217,13 +210,8 @@ function WeeklyReviewSkeleton() {
   )
 }
 
-interface WeeklyReviewProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function WeeklyReview({ open, onOpenChange }: WeeklyReviewProps) {
-  const { data, isLoading, isError, refetch } = useWeeklyReview()
+export function WeeklyReviewPage() {
+  const { data, isLoading, isError, refetch, isFetching } = useWeeklyReview()
   const { setActiveModule } = useAppStore()
 
   const review = data as WeeklyReviewData | undefined
@@ -237,14 +225,30 @@ export function WeeklyReview({ open, onOpenChange }: WeeklyReviewProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="sr-only">Weekly Review</DialogTitle>
-          <DialogDescription className="sr-only">Your comprehensive weekly summary</DialogDescription>
-        </DialogHeader>
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6 animate-page-enter">
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setActiveModule('dashboard')}
+          className="gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="gap-1.5"
+        >
+          <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+          Refresh
+        </Button>
+      </div>
 
-        {isLoading ? (
+      {isLoading ? (
           <WeeklyReviewSkeleton />
         ) : isError ? (
           <div className="text-center py-12">
@@ -500,19 +504,18 @@ export function WeeklyReview({ open, onOpenChange }: WeeklyReviewProps) {
 
               <Separator />
 
-              {/* Close Button */}
+              {/* Back Button */}
               <div className="flex justify-center pt-2">
                 <Button
-                  onClick={() => onOpenChange(false)}
+                  onClick={() => setActiveModule('dashboard')}
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-sm px-8"
                 >
-                  Close Review
+                  Back to Dashboard
                 </Button>
               </div>
             </motion.div>
           </AnimatePresence>
         )}
-      </DialogContent>
-    </Dialog>
+    </div>
   )
 }
