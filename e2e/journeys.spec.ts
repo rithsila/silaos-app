@@ -8,19 +8,19 @@ async function bypassOnboarding(page: Page) {
 
   // Welcome Screen CTA
   const welcomeCTA = page.getByRole('button', { name: /Let's begin/i });
-  if (await welcomeCTA.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await welcomeCTA.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
     await welcomeCTA.click();
   }
 
   // Setup Wizard "Skip setup" button
   const skipSetup = page.getByRole('button', { name: /Skip setup/i });
-  if (await skipSetup.isVisible({ timeout: 5000 }).catch(() => false)) {
+  if (await skipSetup.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
     await skipSetup.click();
   }
 
-  // Wait for the app shell sidebar to confirm we are inside the app
+  // Wait for the main app shell sidebar to confirm we are inside the app
   await expect(
-    page.locator('aside').getByRole('button').first()
+    page.locator('aside').getByRole('button', { name: /Dashboard/i })
   ).toBeVisible({ timeout: 20_000 });
 }
 
@@ -53,6 +53,7 @@ test.describe('Life OS Critical Journeys', () => {
     const taskItem = page
       .locator('div')
       .filter({ has: page.getByText(taskTitle, { exact: true }) })
+      .filter({ has: page.getByRole('checkbox') })
       .last();
     await taskItem.getByRole('checkbox').click();
     await expect(page.getByText(/marked as done/i)).toBeVisible({ timeout: 20_000 });
@@ -79,6 +80,7 @@ test.describe('Life OS Critical Journeys', () => {
     const habitItem = page
       .locator('div')
       .filter({ has: page.getByRole('heading', { name: habitName, exact: true }) })
+      .filter({ has: page.locator('button svg') })
       .last();
     await habitItem.locator('button').filter({ has: page.locator('svg') }).first().click();
 
@@ -98,8 +100,8 @@ test.describe('Life OS Critical Journeys', () => {
     const entryTitle = `E2E Entry ${Date.now()}`;
     await page.getByPlaceholder(/How was your day/i).fill(entryTitle);
 
-    // Fill main content (the textarea)
-    await page.getByPlaceholder(/Write about your day/i).fill(
+    // Fill main content (RichTextEditor contenteditable)
+    await page.locator('[contenteditable="true"]').first().fill(
       'This entry was created by an automated E2E test.'
     );
 
