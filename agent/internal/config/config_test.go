@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoadDefaults(t *testing.T) {
 	for _, k := range []string{
@@ -50,5 +54,33 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.BaseURL != "https://proxy.example.com" || cfg.LLMAPIKey != "sk-test" {
 		t.Fatalf("unexpected auth/url overrides: %+v", cfg)
+	}
+}
+
+func TestLoadDotEnvPopulatesUnsetVars(t *testing.T) {
+	dir := t.TempDir()
+	envPath := filepath.Join(dir, ".env")
+	err := os.WriteFile(envPath, []byte(`# comment
+AGENT_PROVIDER=anthropic
+AGENT_MODEL="gemini-3.8-flash-high"
+AGENT_BASE_URL=http://10.10.22.101:8317 # inline comment
+AGENT_API_KEY=sk-from-dotenv
+`), 0o600)
+	if err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	t.Setenv("AGENT_PROVIDER", "")
+	t.Setenv("AGENT_MODEL", "keep-explicit")
+	t.Setenv("AGENT_BASE_URL", "")
+	t.Setenv("AGENT_API_KEY", "")
+
+	LoadDotEnv(filepath.Join(dir, "missing.env"), envPath)
+	cfg := Load()
+	if cfg.Provider != "anthropic" || cfg.BaseURL != "http://10.10.22.101:8317" || cfg.LLMAPIKey != "sk-from-dotenv" {
+		t.Fatalf("unexpected dotenv config: %+v", cfg)
+	}
+	if cfg.Model != "keep-explicit" {
+		t.Fatalf("expected explicit env var to win over .env, got %q", cfg.Model)
 	}
 }

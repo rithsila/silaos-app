@@ -5,6 +5,42 @@ import (
 	"strings"
 )
 
+// LoadDotEnv reads KEY=VALUE pairs from the first existing env file paths and
+// sets any variable that is not already set (or empty) in the process env.
+func LoadDotEnv(paths ...string) {
+	for _, p := range paths {
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(raw), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			line = strings.TrimPrefix(line, "export ")
+			idx := strings.IndexByte(line, '=')
+			if idx <= 0 {
+				continue
+			}
+			key := strings.TrimSpace(line[:idx])
+			val := strings.TrimSpace(line[idx+1:])
+			if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+				val = val[1 : len(val)-1]
+			} else if hash := strings.Index(val, " #"); hash >= 0 {
+				val = strings.TrimSpace(val[:hash])
+			}
+			if key == "" || val == "" {
+				continue
+			}
+			if strings.TrimSpace(os.Getenv(key)) == "" {
+				_ = os.Setenv(key, val)
+			}
+		}
+		return
+	}
+}
+
 // Config holds runtime settings for the Life OS Norma agent sidecar.
 type Config struct {
 	Port       string

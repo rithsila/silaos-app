@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, PanelLeft, Send, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useTranslation } from '@/lib/i18n'
@@ -315,11 +314,6 @@ export function ChatPage() {
               </p>
             </div>
           </div>
-          {config?.model && (
-            <Badge variant="outline" className="font-mono text-[11px] shrink-0">
-              {config.provider}/{config.model}
-            </Badge>
-          )}
         </div>
 
         {config && !config.llmConfigured && (

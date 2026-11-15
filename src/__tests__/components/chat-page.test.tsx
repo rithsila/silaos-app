@@ -58,7 +58,7 @@ describe('ChatPage', () => {
     expect(screen.getByText('Review my habit streaks and gaps')).toBeInTheDocument()
     expect(screen.getByText('Check my recent spending and budgets')).toBeInTheDocument()
     expect(
-      screen.getByPlaceholderText('Ask Norma about your tasks, schedule, habits, or notes...'),
+      screen.getByPlaceholderText('Ask about your tasks, schedule, habits, or notes...'),
     ).toBeInTheDocument()
   })
 
@@ -98,7 +98,7 @@ describe('ChatPage', () => {
     renderWithProviders(<ChatPage />)
 
     const input = await screen.findByPlaceholderText(
-      'Ask Norma about your tasks, schedule, habits, or notes...',
+      'Ask about your tasks, schedule, habits, or notes...',
     )
     await user.type(input, 'What are my open tasks?')
     await user.click(screen.getByRole('button', { name: 'Send' }))
@@ -164,7 +164,7 @@ describe('ChatPage', () => {
     renderWithProviders(<ChatPage />, { queryClient })
 
     const input = await screen.findByPlaceholderText(
-      'Ask Norma about your tasks, schedule, habits, or notes...',
+      'Ask about your tasks, schedule, habits, or notes...',
     )
     await user.type(input, 'Add task Buy milk')
     await user.click(screen.getByRole('button', { name: 'Send' }))
@@ -214,7 +214,7 @@ describe('ChatPage', () => {
     const { unmount } = renderWithProviders(<ChatPage />)
 
     const input = await screen.findByPlaceholderText(
-      'Ask Norma about your tasks, schedule, habits, or notes...',
+      'Ask about your tasks, schedule, habits, or notes...',
     )
     await user.type(input, 'Long running prompt')
     await user.click(screen.getByRole('button', { name: 'Send' }))

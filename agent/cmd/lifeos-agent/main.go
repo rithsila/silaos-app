@@ -17,6 +17,7 @@ import (
 )
 
 func main() {
+	config.LoadDotEnv(".env", "../.env")
 	cfg := config.Load()
 	client := lifeostools.NewClient(cfg.BackendURL, cfg.APIKey)
 	mgr := chat.NewManager(cfg, client, nil)

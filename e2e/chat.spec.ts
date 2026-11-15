@@ -26,7 +26,7 @@ test.describe('Chat Sidebar Page', () => {
   test('opens Chat from sidebar, shows starter prompts, and creates a session', async ({ page }) => {
     await page.locator('aside').getByRole('button', { name: 'Chat', exact: true }).click();
 
-    await expect(page.getByRole('heading', { name: /Norma AI Assistant/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /AI Assistant/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Summarize today's tasks and schedule/i })).toBeVisible();
 
     const beforeRes = await page.request.get('/api/chat/sessions');

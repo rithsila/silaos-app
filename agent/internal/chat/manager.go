@@ -498,7 +498,7 @@ func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(St
 	return nil
 }
 
-const lifeosSystemPrompt = `You are Norma, the built-in personal assistant inside Life OS.
+const lifeosSystemPrompt = `You are the built-in personal assistant inside Life OS.
 You can inspect and update the user's tasks, projects, notes, note folders, calendar events, time entries, pomodoro sessions, habits, habit logs, journal entries, goals, learning courses, finance accounts/transactions/categories/budgets, tags, analytics, and weekly review.
 
 Rules:
