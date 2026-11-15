@@ -69,7 +69,21 @@ var (
 	}
 )
 
+var createFieldHints = map[string]string{
+	"lifeos_tasks":    "Fields: {title (required), description?, status? (todo|in-progress|done), priority? (low|medium|high), dueDate?, startDate?, estimatedMinutes?, projectId?}.",
+	"lifeos_projects": "Fields: {name (required), description?, status? (active|completed|archived), color?, startDate?, endDate?}.",
+	"lifeos_notes":    "Fields: {title (required), content?, type?, folderId?, color?}.",
+	"lifeos_events":   "Fields: {title (required), startDate (required, ISO-8601), endDate?, allDay?, location?, description?}.",
+	"lifeos_habits":   "Fields: {name (required), description?, frequency? (daily|weekly|custom), targetCount?, unit?, color?}.",
+	"lifeos_journal":  "Fields: {title?, content?, mood?, moodScore?, energy?, stress?, gratitude?, date?}.",
+	"lifeos_goals":    "Fields: {title (required), description?, category?, status?, progress?, targetDate?}.",
+}
+
 func crudSpecs(prefix, basePath, label string, primaryList, primaryCreate, primaryUpdate bool) []endpointSpec {
+	createDesc := fmt.Sprintf("Create a new %s record in Life OS.", label)
+	if hint := createFieldHints[prefix]; hint != "" {
+		createDesc += " " + hint
+	}
 	return []endpointSpec{
 		{
 			name:        prefix + "_list",
@@ -90,7 +104,7 @@ func crudSpecs(prefix, basePath, label string, primaryList, primaryCreate, prima
 		},
 		{
 			name:        prefix + "_create",
-			description: fmt.Sprintf("Create a new %s record in Life OS.", label),
+			description: createDesc,
 			method:      http.MethodPost,
 			path:        basePath,
 			deferred:    !primaryCreate,
@@ -197,12 +211,12 @@ func allSpecs() []endpointSpec {
 	}
 
 	specs = append(specs, crudSpecs("lifeos_tasks", "/api/tasks", "tasks", true, true, true)...)
-	specs = append(specs, crudSpecs("lifeos_projects", "/api/projects", "projects", true, false, false)...)
+	specs = append(specs, crudSpecs("lifeos_projects", "/api/projects", "projects", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_notes", "/api/notes", "notes", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_events", "/api/events", "calendar events", true, true, false)...)
-	specs = append(specs, crudSpecs("lifeos_habits", "/api/habits", "habits", true, false, false)...)
+	specs = append(specs, crudSpecs("lifeos_habits", "/api/habits", "habits", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_journal", "/api/journal", "journal entries", true, true, false)...)
-	specs = append(specs, crudSpecs("lifeos_goals", "/api/goals", "goals", true, false, false)...)
+	specs = append(specs, crudSpecs("lifeos_goals", "/api/goals", "goals", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_courses", "/api/courses", "learning courses", false, false, false)...)
 	return specs
 }

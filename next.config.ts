@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   reactStrictMode: false,
+  experimental: {
+    // Allow long-lived SSE chat streams and approval pauses without Next's 30s proxy timeout.
+    proxyTimeout: 300_000,
+  },
   async headers() {
     return [
       {

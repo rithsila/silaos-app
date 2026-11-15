@@ -64,7 +64,21 @@ func TestReadToolParallelSafe(t *testing.T) {
 
 func TestMutatingToolRequiresApproval(t *testing.T) {
 	client := NewClient("http://localhost:8080", "")
-	tools, _ := AllTools(client)
+	tools, deferred := AllTools(client)
+
+	deferredSet := make(map[string]bool, len(deferred))
+	for _, d := range deferred {
+		deferredSet[d] = true
+	}
+	for _, primaryCreate := range []string{"lifeos_habits_create", "lifeos_projects_create", "lifeos_goals_create"} {
+		if deferredSet[primaryCreate] {
+			t.Fatalf("expected %s to be primary (not deferred)", primaryCreate)
+		}
+		tl := findTool(t, tools, primaryCreate)
+		if !strings.Contains(tl.Description(), "Fields:") {
+			t.Fatalf("expected %s description to include field hints, got %q", primaryCreate, tl.Description())
+		}
+	}
 
 	for _, name := range []string{"lifeos_tasks_create", "lifeos_tasks_delete"} {
 		tl := findTool(t, tools, name)

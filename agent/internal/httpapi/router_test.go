@@ -148,6 +148,9 @@ func TestSSEStreamFormat(t *testing.T) {
 	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 		t.Fatalf("expected text/event-stream, got %q", ct)
 	}
+	if cc := resp.Header.Get("Cache-Control"); !strings.Contains(cc, "no-transform") {
+		t.Fatalf("expected Cache-Control to contain no-transform, got %q", cc)
+	}
 	if xab := resp.Header.Get("X-Accel-Buffering"); xab != "no" {
 		t.Fatalf("expected X-Accel-Buffering=no, got %q", xab)
 	}
