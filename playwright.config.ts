@@ -53,6 +53,14 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
+      command: 'bun run agent:dev',
+      url: 'http://localhost:8081/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    {
       command: 'bun run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,

@@ -3,7 +3,8 @@
 Local-first SPA. Package manager is **Bun** (`bun.lock`). Runtime API is **Rust (axum + sqlx)**, not Next.js route handlers. Prisma is schema + migrations + seed only (`prisma/seed.ts` is the only `@prisma/client` user).
 
 ```
-Browser :3000 → Next rewrites /api/* → Rust :8080 → SQLite (prisma/dev.db)
+Browser :3000 → Next rewrites /api/chat/* → Go Norma Agent :8081 → Rust :8080
+             → Next rewrites /api/*      → Rust :8080 → SQLite (prisma/dev.db)
 ```
 
 UI is a single Next page (`src/app/page.tsx` → `AppShell`). Module switches are Zustand `activeModule`, not App Router paths. Do not add `src/app/<module>/page.tsx` or `src/app/api/**`.
@@ -77,8 +78,15 @@ Health check is `GET http://localhost:8080/health` (not `/api/health`). Docker a
 |-----|------|
 | `DATABASE_URL` | Prisma: `file:./prisma/dev.db`. Rust default from `backend/`: `sqlite:../prisma/dev.db` |
 | `BACKEND_URL` | Next rewrite target, default `http://localhost:8080` |
+| `AGENT_URL` | Next rewrite target for `/api/chat/*`, default `http://localhost:8081` |
 | `PORT` | Rust listen port, default `8080` |
-| `API_KEY` | If set, all `/api/*` need `Authorization: Bearer <key>` |
+| `AGENT_PORT` | Go Norma agent listen port, default `8081` |
+| `AGENT_DATA_DIR` | Go agent transcript/memory store, default `.lifeos-agent` |
+| `AGENT_PROVIDER` | LLM wire format (`openai` \| `anthropic` \| `openai-responses`) |
+| `AGENT_MODEL` | Model ID for Norma chat |
+| `AGENT_BASE_URL` | Optional custom LLM API base URL |
+| `AGENT_API_KEY` | LLM API key (falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`) |
+| `API_KEY` | If set, all `/api/*` and `/api/chat/*` need `Authorization: Bearer <key>` |
 | `ALLOWED_ORIGIN` | If set, CORS is locked to that origin; unset = permissive (dev) |
 
 Opaque `Internal Server Error` from the browser usually means Next is up and Rust is not (`dev:all` exists for this).
