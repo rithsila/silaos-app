@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -11,24 +10,21 @@ import (
 	"syscall"
 	"time"
 
+	"lifeos-agent/internal/chat"
 	"lifeos-agent/internal/config"
+	"lifeos-agent/internal/httpapi"
+	"lifeos-agent/internal/lifeostools"
 )
 
 func main() {
 	cfg := config.Load()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"status":        "ok",
-			"llmConfigured": cfg.LLMAPIKey != "",
-		})
-	})
+	client := lifeostools.NewClient(cfg.BackendURL, cfg.APIKey)
+	mgr := chat.NewManager(cfg, client, nil)
+	handler := httpapi.NewRouter(cfg, mgr)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -36,7 +32,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("lifeos-agent listening on http://0.0.0.0:%s (backend: %s)", cfg.Port, cfg.BackendURL)
+		log.Printf("lifeos-agent listening on http://0.0.0.0:%s (backend: %s, llmConfigured: %v)", cfg.Port, cfg.BackendURL, cfg.LLMAPIKey != "")
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server error: %v", err)
 		}
