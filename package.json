@@ -41,6 +41,8 @@
     "backend:dev": "cd backend && cargo run",
     "backend:build": "cd backend && cargo build --release",
     "backend:start": "cd backend && ./target/release/lifeos-backend",
+    "agent:dev": "cd agent && go run ./cmd/lifeos-agent",
+    "agent:build": "cd agent && go build -o ../dist/lifeos-agent ./cmd/lifeos-agent",
     "dev:all": "node scripts/dev-all.mjs",
     "docker:build": "docker build -t life-os .",
     "docker:up": "docker compose up -d --build",

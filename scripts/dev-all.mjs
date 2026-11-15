@@ -16,7 +16,8 @@ import { platform } from 'node:os'
 const ESC = '\x1b['
 const color = (n, s) => (process.stdout.isTTY ? `${ESC}${n}m${s}${ESC}0m` : s)
 const tag = {
-  back: color(36, '[back]'),  // cyan
+  back: color(36, '[back]'),   // cyan
+  agent: color(35, '[agent]'), // magenta
   front: color(33, '[front]'), // yellow
 }
 
@@ -28,15 +29,18 @@ function pipe(child, label) {
   child.stderr.on('data', (b) => process.stderr.write(`${label} ${b}`))
 }
 
-console.log(color(1, '\n  Life OS · dev (backend + frontend)\n'))
+console.log(color(1, '\n  Life OS · dev (backend + agent + frontend)\n'))
 
 const back = spawn('cargo', ['run'], { ...shellOpts, cwd: 'backend' })
 pipe(back, tag.back)
 
+const agent = spawn('go', ['run', './cmd/lifeos-agent'], { ...shellOpts, cwd: 'agent' })
+pipe(agent, tag.agent)
+
 const front = spawn('bun', ['run', 'dev'], shellOpts)
 pipe(front, tag.front)
 
-const children = [back, front]
+const children = [back, agent, front]
 let exiting = false
 const stopAll = (sig = 'SIGTERM') => {
   if (exiting) return
@@ -49,6 +53,10 @@ const stopAll = (sig = 'SIGTERM') => {
 
 back.on('exit', (code) => {
   console.error(color(31, `\n${tag.back} backend exited with code ${code}`))
+  stopAll()
+})
+agent.on('exit', (code) => {
+  console.error(color(31, `\n${tag.agent} agent exited with code ${code}`))
   stopAll()
 })
 front.on('exit', (code) => {

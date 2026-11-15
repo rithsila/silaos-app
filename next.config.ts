@@ -44,15 +44,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Proxy API prefixes to the Rust backend. This is an allowlist — unlisted
-  // /api/* paths are not served by Next (there are no App Router API routes).
+  // Proxy API prefixes to the Rust backend and Go Norma agent. This is an
+  // allowlist — unlisted /api/* paths are not served by Next.
   async rewrites() {
     const backend = process.env.BACKEND_URL || "http://localhost:8080";
-    const proxy = (prefix: string) => [
-      { source: prefix, destination: `${backend}${prefix}` },
-      { source: `${prefix}/:path*`, destination: `${backend}${prefix}/:path*` },
+    const agent = process.env.AGENT_URL || "http://localhost:8081";
+    const proxy = (prefix: string, target = backend) => [
+      { source: prefix, destination: `${target}${prefix}` },
+      { source: `${prefix}/:path*`, destination: `${target}${prefix}/:path*` },
     ];
     return [
+      ...proxy("/api/chat", agent),
       ...proxy("/api/tasks"),
       ...proxy("/api/projects"),
       ...proxy("/api/notes"),

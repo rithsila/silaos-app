@@ -37,6 +37,23 @@ until wget -qO- http://localhost:8080/health > /dev/null 2>&1; do
 done
 echo "✓ Backend ready (${TRIES}s)"
 
+echo "→ Starting Life OS Norma agent on port 8081..."
+AGENT_PORT=8081 BACKEND_URL="http://localhost:8080" AGENT_DATA_DIR="/app/data/agent" \
+    /usr/local/bin/lifeos-agent &
+AGENT_PID=$!
+
+TRIES=0
+until wget -qO- http://localhost:8081/health > /dev/null 2>&1; do
+    TRIES=$((TRIES + 1))
+    if [ "$TRIES" -ge "$MAX_TRIES" ]; then
+        echo "✗ Agent failed to start after ${MAX_TRIES}s" >&2
+        kill "$AGENT_PID" "$BACKEND_PID" 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
+echo "✓ Agent ready (${TRIES}s)"
+
 echo "→ Starting Life OS frontend on port ${PORT:-3000}..."
 # The Next.js standalone server is in the current directory
 exec node server.js

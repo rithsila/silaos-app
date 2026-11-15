@@ -20,6 +20,16 @@ RUN mkdir src \
 COPY backend/src ./src
 RUN touch src/lib.rs src/main.rs && cargo build --release
 
+# ---------- Go Agent Builder ----------
+FROM golang:1-bookworm AS go-builder
+WORKDIR /app/agent
+
+COPY agent/go.mod agent/go.sum ./
+RUN go mod download
+
+COPY agent/ ./
+RUN CGO_ENABLED=0 go build -o /usr/local/bin/lifeos-agent ./cmd/lifeos-agent
+
 # ---------- Next.js Builder ----------
 FROM oven/bun:1 AS builder
 WORKDIR /app
@@ -43,7 +53,8 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
     DATABASE_URL="file:/app/data/prod.db" \
-    BACKEND_URL="http://localhost:8080"
+    BACKEND_URL="http://localhost:8080" \
+    AGENT_URL="http://localhost:8081"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl ca-certificates wget curl libsqlite3-0 sqlite3 \
@@ -57,19 +68,21 @@ COPY --from=builder /app/public ./public
 # 2. Prisma schema + SQL migrations (applied with sqlite3 at start)
 COPY --from=builder /app/prisma ./prisma
 
-# 5. Rust backend binary
+# 5. Rust backend + Go agent binaries
 COPY --from=rust-builder /app/backend/target/release/lifeos-backend /usr/local/bin/lifeos-backend
+COPY --from=go-builder /usr/local/bin/lifeos-agent /usr/local/bin/lifeos-agent
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/lifeos-backend \
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/lifeos-backend /usr/local/bin/lifeos-agent \
     && mkdir -p /app/data \
-    && chown -R node:node /app /usr/local/bin/lifeos-backend
+    && chown -R node:node /app /usr/local/bin/lifeos-backend /usr/local/bin/lifeos-agent
 
 USER node
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -sf http://localhost:3000/ > /dev/null && \
-        curl -sf http://localhost:8080/health > /dev/null || exit 1
+        curl -sf http://localhost:8080/health > /dev/null && \
+        curl -sf http://localhost:8081/health > /dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

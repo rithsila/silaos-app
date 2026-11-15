@@ -134,12 +134,37 @@ jobs:
           RUST_BACKTRACE: 1
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Agent job: Go vet → test
+# ─────────────────────────────────────────────────────────────────────────────
+  agent:
+    name: Agent
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Vet
+        run: go vet ./...
+        working-directory: agent
+
+      - name: Test
+        run: go test -race ./...
+        working-directory: agent
+
+# ─────────────────────────────────────────────────────────────────────────────
 # E2E job: Playwright tests
 # ─────────────────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: [frontend, backend]
+    needs: [frontend, backend, agent]
 
     steps:
       - name: Checkout
@@ -163,6 +188,12 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
 
       - name: Restore Rust cache
         uses: Swatinem/rust-cache@v2
@@ -192,7 +223,7 @@ jobs:
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [frontend, backend]
+    needs: [frontend, backend, agent]
 
     steps:
       - name: Checkout
