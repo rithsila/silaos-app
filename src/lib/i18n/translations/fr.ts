@@ -48,7 +48,7 @@ const fr: TranslationKeys = {
     wellness: 'Bien-être',
     growth: 'Croissance',
     dashboard: 'Tableau de bord',
-    chat: 'Chat Norma',
+    chat: 'Chat',
     tasks: 'Tâches',
     notes: 'Notes',
     calendar: 'Calendrier',

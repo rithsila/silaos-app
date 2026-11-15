@@ -18,13 +18,13 @@ async function bypassOnboarding(page: Page) {
   ).toBeVisible({ timeout: 20_000 });
 }
 
-test.describe('Norma Chat Sidebar Page', () => {
+test.describe('Chat Sidebar Page', () => {
   test.beforeEach(async ({ page }) => {
     await bypassOnboarding(page);
   });
 
-  test('opens Norma Chat from sidebar, shows starter prompts, and creates a session', async ({ page }) => {
-    await page.locator('aside').getByRole('button', { name: /Norma Chat/i }).click();
+  test('opens Chat from sidebar, shows starter prompts, and creates a session', async ({ page }) => {
+    await page.locator('aside').getByRole('button', { name: 'Chat', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: /Norma AI Assistant/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Summarize today's tasks and schedule/i })).toBeVisible();

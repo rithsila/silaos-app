@@ -218,7 +218,7 @@ func (m *Manager) GetSession(_ context.Context, id string) (*SessionDetail, erro
 		return nil, ErrSessionNotFound
 	}
 
-	var msgs []ChatMessage
+	msgs := make([]ChatMessage, 0)
 	recs, err := m.transcript.Load(m.transcript.MainPath(id))
 	if err == nil {
 		raw, _ := transcript.Messages(recs)
@@ -253,7 +253,14 @@ func (m *Manager) DeleteSession(_ context.Context, id string) error {
 }
 
 func (m *Manager) ListMemories() ([]memory.Memory, error) {
-	return m.memory.Scan()
+	items, err := m.memory.Scan()
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		return make([]memory.Memory, 0), nil
+	}
+	return items, nil
 }
 
 func (m *Manager) ResolveApproval(sessionID, toolUseID string, allow bool) error {
@@ -502,7 +509,7 @@ Rules:
 - Reply clearly and concisely.`
 
 func toChatMessages(msgs []llm.Message) []ChatMessage {
-	var out []ChatMessage
+	out := make([]ChatMessage, 0)
 	for _, msg := range msgs {
 		var textParts []string
 		var tools []ToolTrace

@@ -50,7 +50,7 @@ const en = {
     wellness: 'Wellness',
     growth: 'Growth',
     dashboard: 'Dashboard',
-    chat: 'Norma Chat',
+    chat: 'Chat',
     tasks: 'Tasks',
     notes: 'Notes',
     calendar: 'Calendar',

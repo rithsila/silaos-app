@@ -322,3 +322,19 @@ func TestMultiToolApprovalsProduceUniqueIDs(t *testing.T) {
 		t.Fatalf("expected 2 created tasks, got %d", created.Load())
 	}
 }
+
+func TestGetSessionEmptyReturnsNonNilMessages(t *testing.T) {
+	dir := t.TempDir()
+	mgr := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient("http://127.0.0.1:1", ""), nil)
+	sess, err := mgr.CreateSession(context.Background(), "Empty")
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	detail, err := mgr.GetSession(context.Background(), sess.ID)
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+	if detail.Messages == nil {
+		t.Fatalf("expected non-nil Messages slice for empty session (so JSON serializes [] instead of null)")
+	}
+}

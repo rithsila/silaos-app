@@ -141,7 +141,10 @@ export function ChatPage() {
         await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
       }
 
-      const baseMessages = sessionDetail?.id === targetId ? sessionDetail.messages : []
+      const baseMessages =
+        sessionDetail?.id === targetId && Array.isArray(sessionDetail.messages)
+          ? sessionDetail.messages
+          : []
       setOptimisticMessages([...baseMessages, { role: 'user', text: trimmed }])
       setInput('')
       setIsStreaming(true)
@@ -257,7 +260,8 @@ export function ChatPage() {
     [activeSessionId, queryClient],
   )
 
-  const displayedMessages = optimisticMessages ?? sessionDetail?.messages ?? []
+  const displayedMessages =
+    optimisticMessages ?? (Array.isArray(sessionDetail?.messages) ? sessionDetail.messages : [])
 
   return (
     <div className="flex h-full overflow-hidden">

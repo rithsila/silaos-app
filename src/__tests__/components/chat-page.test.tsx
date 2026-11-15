@@ -226,4 +226,47 @@ describe('ChatPage', () => {
     unmount()
     expect(observedSignal?.aborted).toBe(true)
   })
+
+  it('handles null messages on empty session when clicking a starter prompt', async () => {
+    const session = {
+      id: 'sess-empty',
+      title: 'New Chat',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    let posted = false
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-empty', () =>
+        HttpResponse.json({
+          ...session,
+          messages: posted
+            ? [
+                { role: 'user', text: "Summarize today's tasks and schedule" },
+                { role: 'assistant', text: 'Here is your summary.' },
+              ]
+            : null,
+        }),
+      ),
+      http.post('/api/chat/sessions/sess-empty/message', () => {
+        posted = true
+        return sseResponse([
+          'event: text\ndata: {"type":"text","text":"Here is your summary."}\n\n',
+          'event: done\ndata: {"type":"done"}\n\n',
+        ])
+      }),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-empty' })
+    const user = userEvent.setup()
+    renderWithProviders(<ChatPage />)
+
+    const starter = await screen.findByRole('button', {
+      name: "Summarize today's tasks and schedule",
+    })
+    await user.click(starter)
+
+    expect(await screen.findByText('Here is your summary.')).toBeInTheDocument()
+  })
 })

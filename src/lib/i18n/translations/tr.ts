@@ -52,7 +52,7 @@ const tr: TranslationKeys = {
     wellness: 'Sağlık',
     growth: 'Gelişim',
     dashboard: 'Panel',
-    chat: 'Norma Sohbet',
+    chat: 'Sohbet',
     tasks: 'Görevler',
     notes: 'Notlar',
     calendar: 'Takvim',

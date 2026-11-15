@@ -48,7 +48,7 @@ const es: TranslationKeys = {
     wellness: 'Bienestar',
     growth: 'Crecimiento',
     dashboard: 'Panel',
-    chat: 'Chat Norma',
+    chat: 'Chat',
     tasks: 'Tareas',
     notes: 'Notas',
     calendar: 'Calendario',

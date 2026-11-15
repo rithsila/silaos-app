@@ -67,7 +67,11 @@ export async function createChatSession(title?: string): Promise<ChatSessionSumm
 }
 
 export async function fetchChatSession(id: string): Promise<ChatSessionDetail> {
-  return apiGet<ChatSessionDetail>(`/api/chat/sessions/${encodeURIComponent(id)}`)
+  const data = await apiGet<ChatSessionDetail>(`/api/chat/sessions/${encodeURIComponent(id)}`)
+  return {
+    ...data,
+    messages: Array.isArray(data.messages) ? data.messages : [],
+  }
 }
 
 export async function deleteChatSession(id: string): Promise<void> {
