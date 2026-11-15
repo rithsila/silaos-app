@@ -50,6 +50,7 @@ export function Header() {
 
   const moduleLabels: Record<ModuleId, string> = {
     dashboard: t('nav.dashboard'),
+    chat: t('nav.chat'),
     tasks: t('nav.tasks'),
     notes: t('nav.notes'),
     habits: t('nav.habits'),
@@ -65,6 +66,7 @@ export function Header() {
 
   const moduleGroups: Record<ModuleId, string> = {
     dashboard: t('groups.home'),
+    chat: t('groups.home'),
     tasks: t('groups.productivity'),
     notes: t('groups.productivity'),
     habits: t('groups.wellness'),
