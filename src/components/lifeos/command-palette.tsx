@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useAppStore, type ModuleId } from '@/stores/app-store'
 import {
   LayoutDashboard,
+  MessageSquare,
   CheckSquare,
   StickyNote,
   Repeat,
@@ -29,6 +30,7 @@ import {
 
 const modules: { id: ModuleId; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'chat', label: 'Norma Chat', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'notes', label: 'Notes', icon: StickyNote },
   { id: 'habits', label: 'Habits', icon: Repeat },

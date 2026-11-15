@@ -20,6 +20,7 @@ import { CalendarPage } from './calendar/calendar-page'
 import { TimePage } from './time/time-page'
 import { SettingsPage } from './settings/settings-page'
 import { WeeklyReviewPage } from './dashboard/weekly-review'
+import { ChatPage } from './chat/chat-page'
 import { KeyboardShortcutsHelp, useKeyboardShortcuts } from './keyboard-shortcuts'
 import { FocusModeOverlay } from './focus-mode-overlay'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -27,6 +28,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 const moduleComponents: Record<string, React.ComponentType> = {
   dashboard: DashboardPage,
+  chat: ChatPage,
   tasks: TasksPage,
   notes: NotesPage,
   habits: HabitsPage,

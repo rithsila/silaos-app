@@ -5,6 +5,7 @@ import { useAppStore, type ModuleId } from '@/stores/app-store'
 import { useTranslation } from '@/lib/i18n'
 import {
   LayoutDashboard,
+  MessageSquare,
   CheckSquare,
   StickyNote,
   Repeat,
@@ -35,6 +36,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
       title: t('nav.overview'),
       items: [
         { id: 'dashboard' as ModuleId, label: t('nav.dashboard'), icon: LayoutDashboard },
+        { id: 'chat' as ModuleId, label: t('nav.chat'), icon: MessageSquare },
       ],
     },
     {
@@ -71,7 +73,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
   const filteredSections = navSections.map(section => ({
     ...section,
     items: section.items.filter(item =>
-      enabledModules.includes(item.id) || item.id === 'dashboard'
+      enabledModules.includes(item.id) || item.id === 'dashboard' || item.id === 'chat'
     )
   })).filter(section => section.items.length > 0)
 
