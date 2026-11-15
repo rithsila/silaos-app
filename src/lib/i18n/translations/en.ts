@@ -1054,6 +1054,7 @@ const en = {
     deny: 'Deny',
     approved: 'Approved',
     denied: 'Denied',
+    details: 'Details',
     deleteThread: 'Delete conversation',
     renameThread: 'Rename conversation',
     copy: 'Copy',

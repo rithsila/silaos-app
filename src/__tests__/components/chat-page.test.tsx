@@ -169,7 +169,11 @@ describe('ChatPage', () => {
     await user.type(input, 'Add task Buy milk')
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
-    expect(await screen.findByText('lifeos_tasks_create')).toBeInTheDocument()
+    expect(await screen.findByText('Create Task')).toBeInTheDocument()
+    expect(screen.getByText('Buy milk')).toBeInTheDocument()
+    const detailsBtn = screen.getByRole('button', { name: 'Details' })
+    await user.click(detailsBtn)
+    expect(screen.getByText('lifeos_tasks_create')).toBeInTheDocument()
     const approveBtn = await screen.findByRole('button', { name: 'Approve' })
     await user.click(approveBtn)
 

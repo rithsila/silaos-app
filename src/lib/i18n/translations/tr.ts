@@ -1054,6 +1054,7 @@ const tr: TranslationKeys = {
     deny: 'Reddet',
     approved: 'Onaylandı',
     denied: 'Reddedildi',
+    details: 'Detaylar',
     deleteThread: 'Sohbeti sil',
     renameThread: 'Sohbeti yeniden adlandır',
     copy: 'Kopyala',

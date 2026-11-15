@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
 import type { ChatMessage, ChatToolTrace } from '@/lib/api/chat'
 import { ChatMarkdown } from './chat-markdown'
+import { formatToolLabel, parseToolPayload } from './tool-format'
 import { ToolApprovalCard, type PendingApproval } from './tool-approval-card'
 
 interface ChatMessageListProps {
@@ -55,11 +56,18 @@ function CopyTextButton({ text, label }: { text: string; label?: string }) {
 
 function ToolTraceList({ tools }: { tools: ChatToolTrace[] }) {
   const [open, setOpen] = useState(false)
-  const { t } = useTranslation()
   if (tools.length === 0) return null
 
+  const summaryLabels = Array.from(
+    new Set(tools.map((tl) => formatToolLabel(tl.name, tl.input))),
+  )
+  const summaryText =
+    summaryLabels.length === 1
+      ? summaryLabels[0]
+      : `${summaryLabels[0]} +${tools.length - 1}`
+
   return (
-    <div className="rounded-md border border-border/70 bg-muted/30 px-2.5 py-1.5 text-xs">
+    <div className="rounded-lg border border-border/60 bg-muted/25 px-3 py-1.5 text-xs">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -67,31 +75,48 @@ function ToolTraceList({ tools }: { tools: ChatToolTrace[] }) {
       >
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         <Wrench className="h-3 w-3" />
-        <span>
-          {t('chat.toolCall')} ({tools.length})
-        </span>
+        <span className="truncate font-medium text-foreground/80">{summaryText}</span>
+        {tools.length > 1 && (
+          <span className="text-[11px] text-muted-foreground">({tools.length})</span>
+        )}
       </button>
       {open && (
         <div className="mt-2 space-y-2 border-t border-border/50 pt-2">
-          {tools.map((tl) => (
-            <div key={tl.id} className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <Badge variant={tl.isError ? 'destructive' : 'secondary'} className="font-mono text-[10px]">
-                  {tl.name || tl.id}
-                </Badge>
+          {tools.map((tl) => {
+            const label = formatToolLabel(tl.name, tl.input)
+            const { fields, raw } = parseToolPayload(tl.input)
+            return (
+              <div key={tl.id} className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Badge variant={tl.isError ? 'destructive' : 'secondary'} className="text-[11px]">
+                    {label}
+                  </Badge>
+                </div>
+                {fields.length > 0 ? (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-0.5 rounded bg-background/70 px-2.5 py-1.5 text-[11px]">
+                    {fields.map((field) => (
+                      <div key={field.label} className="contents">
+                        <dt className="text-muted-foreground">{field.label}</dt>
+                        <dd className="text-foreground break-words">{field.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  raw &&
+                  raw !== '{}' && (
+                    <pre className="max-h-24 overflow-auto rounded bg-background/70 p-1.5 text-[10px] font-mono">
+                      {raw}
+                    </pre>
+                  )
+                )}
+                {tl.result && tl.isError && (
+                  <pre className="max-h-28 overflow-auto rounded bg-destructive/10 p-1.5 text-[11px] text-destructive">
+                    {tl.result}
+                  </pre>
+                )}
               </div>
-              {tl.input && (
-                <pre className="max-h-24 overflow-auto rounded bg-background/70 p-1.5 text-[10px] font-mono">
-                  {tl.input}
-                </pre>
-              )}
-              {tl.result && (
-                <pre className="max-h-28 overflow-auto rounded bg-background/70 p-1.5 text-[10px] font-mono text-muted-foreground">
-                  {tl.result}
-                </pre>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

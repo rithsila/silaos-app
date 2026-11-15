@@ -1,10 +1,12 @@
 'use client'
 
-import { ShieldAlert, Check, X } from 'lucide-react'
+import { useState } from 'react'
+import { Check, ChevronDown, ChevronRight, ShieldAlert, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslation } from '@/lib/i18n'
 import type { ChatApprovalRequest } from '@/lib/api/chat'
+import { formatToolLabel, parseToolPayload } from './tool-format'
 
 export interface PendingApproval extends ChatApprovalRequest {
   status: 'pending' | 'approved' | 'denied'
@@ -18,10 +20,9 @@ interface ToolApprovalCardProps {
 
 export function ToolApprovalCard({ approval, onResolve }: ToolApprovalCardProps) {
   const { t } = useTranslation()
-  const formattedInput =
-    typeof approval.input === 'string'
-      ? approval.input
-      : JSON.stringify(approval.input ?? {}, null, 2)
+  const [showRaw, setShowRaw] = useState(false)
+  const label = formatToolLabel(approval.toolName, approval.input)
+  const { fields, raw } = parseToolPayload(approval.input)
 
   return (
     <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-2.5">
@@ -30,16 +31,48 @@ export function ToolApprovalCard({ approval, onResolve }: ToolApprovalCardProps)
           <ShieldAlert className="h-4 w-4 shrink-0" />
           <span>{t('chat.approvalTitle')}</span>
         </div>
-        <Badge variant="outline" className="font-mono text-[11px]">
-          {approval.toolName}
+        <Badge variant="secondary" className="text-[11px] font-medium">
+          {label}
         </Badge>
       </div>
 
       <p className="text-xs text-muted-foreground">{t('chat.approvalHint')}</p>
 
-      <pre className="max-h-40 overflow-auto rounded bg-muted/60 p-2 text-[11px] font-mono text-foreground">
-        {formattedInput}
-      </pre>
+      {fields.length > 0 ? (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border/50 bg-background/60 px-3 py-2 text-xs">
+          {fields.map((field) => (
+            <div key={field.label} className="contents">
+              <dt className="text-muted-foreground font-medium">{field.label}</dt>
+              <dd className="text-foreground break-words">{field.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <pre className="max-h-40 overflow-auto rounded bg-muted/60 p-2 text-[11px] font-mono text-foreground">
+          {raw}
+        </pre>
+      )}
+
+      {fields.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowRaw((v) => !v)}
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showRaw ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            <span>{t('chat.details')}</span>
+          </button>
+          {showRaw && (
+            <div className="mt-1.5 space-y-1">
+              <div className="text-[10px] font-mono text-muted-foreground">{approval.toolName}</div>
+              <pre className="max-h-40 overflow-auto rounded bg-muted/60 p-2 text-[11px] font-mono text-foreground">
+                {raw}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
 
       {approval.status === 'pending' ? (
         <div className="flex items-center gap-2">

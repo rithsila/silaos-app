@@ -1005,6 +1005,7 @@ const es: TranslationKeys = {
     deny: 'Denegar',
     approved: 'Aprobado',
     denied: 'Denegado',
+    details: 'Detalles',
     deleteThread: 'Eliminar conversación',
     renameThread: 'Renombrar conversación',
     copy: 'Copiar',

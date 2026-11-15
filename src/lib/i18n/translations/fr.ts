@@ -1005,6 +1005,7 @@ const fr: TranslationKeys = {
     deny: 'Refuser',
     approved: 'Approuvé',
     denied: 'Refusé',
+    details: 'Détails',
     deleteThread: 'Supprimer la conversation',
     renameThread: 'Renommer la conversation',
     copy: 'Copier',

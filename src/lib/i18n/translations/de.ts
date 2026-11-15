@@ -1005,6 +1005,7 @@ const de: TranslationKeys = {
     deny: 'Ablehnen',
     approved: 'Freigegeben',
     denied: 'Abgelehnt',
+    details: 'Details',
     deleteThread: 'Unterhaltung löschen',
     renameThread: 'Unterhaltung umbenennen',
     copy: 'Kopieren',
