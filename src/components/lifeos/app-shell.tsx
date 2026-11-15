@@ -74,8 +74,8 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="flex flex-1 h-screen overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Desktop sidebar — hidden on mobile */}
         {!focusMode && !isMobile && <Sidebar />}
 
