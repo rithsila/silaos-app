@@ -303,9 +303,9 @@ export function ChatPage() {
     optimisticMessages ?? (Array.isArray(sessionDetail?.messages) ? sessionDetail.messages : [])
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full min-h-0 overflow-hidden">
       {!isMobile && threadsOpen && (
-        <aside className="w-64 shrink-0 h-full">
+        <aside className="w-64 shrink-0 h-full min-h-0 overflow-hidden">
           <ChatThreadList
             sessions={sessions}
             activeSessionId={activeSessionId}
@@ -335,7 +335,7 @@ export function ChatPage() {
         </Sheet>
       )}
 
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 h-full">
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Button

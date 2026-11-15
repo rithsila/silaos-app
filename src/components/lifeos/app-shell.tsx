@@ -79,9 +79,9 @@ export function AppShell() {
         {/* Desktop sidebar — hidden on mobile */}
         {!focusMode && !isMobile && <Sidebar />}
 
-        <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {!focusMode && <Header />}
-          <main className="flex-1 overflow-auto relative">
+          <main className="flex-1 min-h-0 overflow-auto relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeModule}
@@ -90,7 +90,7 @@ export function AppShell() {
                 animate="animate"
                 exit="exit"
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="h-full"
+                className="h-full min-h-0"
               >
                 <ActiveComponent />
               </motion.div>

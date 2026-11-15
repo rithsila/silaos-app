@@ -146,7 +146,7 @@ export function ChatMessageList({
     approvals.length === 0
 
   return (
-    <ScrollArea className="flex-1 px-4 py-6">
+    <ScrollArea className="flex-1 min-h-0 px-4 py-6 [&_[data-slot=scroll-area-viewport]>div]:!block">
       <div className="mx-auto max-w-3xl space-y-5">
         {isEmpty ? (
           <div className="py-12 text-center space-y-6">

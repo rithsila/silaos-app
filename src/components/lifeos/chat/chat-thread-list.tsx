@@ -43,8 +43,8 @@ export function ChatThreadList({
   }
 
   return (
-    <div className="flex flex-col h-full border-r border-border bg-muted/10">
-      <div className="p-3 border-b border-border flex items-center justify-between gap-2">
+    <div className="flex flex-col h-full min-h-0 border-r border-border bg-muted/10">
+      <div className="p-3 border-b border-border flex items-center justify-between gap-2 shrink-0">
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {t('chat.threads')}
         </span>
@@ -54,7 +54,7 @@ export function ChatThreadList({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-2">
+      <ScrollArea className="flex-1 min-h-0 p-2 [&_[data-slot=scroll-area-viewport]>div]:!block">
         {sessions.length === 0 ? (
           <p className="px-2 py-6 text-center text-xs text-muted-foreground">
             {t('chat.emptyThreads')}
