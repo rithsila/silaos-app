@@ -22,7 +22,7 @@ const tag = {
 }
 
 const isWindows = platform() === 'win32'
-const shellOpts = { stdio: ['ignore', 'pipe', 'pipe'], shell: isWindows }
+const shellOpts = { stdio: ['ignore', 'pipe', 'pipe'], shell: isWindows, detached: !isWindows }
 
 function pipe(child, label) {
   child.stdout.on('data', (b) => process.stdout.write(`${label} ${b}`))
@@ -46,8 +46,14 @@ const stopAll = (sig = 'SIGTERM') => {
   if (exiting) return
   exiting = true
   for (const c of children) {
-    if (c.killed) continue
-    try { c.kill(sig) } catch { /* already gone */ }
+    if (c.killed || !c.pid) continue
+    try {
+      if (!isWindows) {
+        process.kill(-c.pid, sig)
+      } else {
+        c.kill(sig)
+      }
+    } catch { /* already gone */ }
   }
 }
 
