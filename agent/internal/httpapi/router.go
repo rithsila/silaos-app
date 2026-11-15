@@ -67,6 +67,23 @@ func NewRouter(cfg config.Config, mgr *chat.Manager) http.Handler {
 		writeJSON(w, http.StatusOK, detail)
 	})
 
+	api.HandleFunc("PATCH /api/chat/sessions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		var body struct {
+			Title string `json:"title"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32*1024)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON body")
+			return
+		}
+		sess, err := mgr.RenameSession(r.Context(), id, body.Title)
+		if err != nil {
+			writeMappedError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, sess)
+	})
+
 	api.HandleFunc("DELETE /api/chat/sessions/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if err := mgr.DeleteSession(r.Context(), id); err != nil {
@@ -79,7 +96,8 @@ func NewRouter(cfg config.Config, mgr *chat.Manager) http.Handler {
 	api.HandleFunc("POST /api/chat/sessions/{id}/message", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		var body struct {
-			Message string `json:"message"`
+			Message         string `json:"message"`
+			RewindFromIndex *int   `json:"rewindFromIndex,omitempty"`
 		}
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 256*1024)).Decode(&body); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON body")
@@ -107,7 +125,7 @@ func NewRouter(cfg config.Config, mgr *chat.Manager) http.Handler {
 			}
 		}
 
-		err := mgr.SendMessage(r.Context(), id, body.Message, func(ev chat.StreamEvent) {
+		err := mgr.SendMessageFrom(r.Context(), id, body.Message, body.RewindFromIndex, func(ev chat.StreamEvent) {
 			ensureSSE()
 			b, mErr := json.Marshal(ev)
 			if mErr != nil {
@@ -184,6 +202,8 @@ func writeMappedError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, chat.ErrSessionNotFound), errors.Is(err, chat.ErrApprovalNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, chat.ErrInvalidMessageIndex), errors.Is(err, chat.ErrInvalidTitle):
+		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, chat.ErrSessionBusy):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, chat.ErrLLMNotConfigured):

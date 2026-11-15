@@ -338,3 +338,76 @@ func TestGetSessionEmptyReturnsNonNilMessages(t *testing.T) {
 		t.Fatalf("expected non-nil Messages slice for empty session (so JSON serializes [] instead of null)")
 	}
 }
+
+func TestRenameAndRewindSession(t *testing.T) {
+	dir := t.TempDir()
+	prov := &scriptedProvider{
+		fn: func(_ context.Context, _ llm.CompletionRequest, call int) []llm.StreamEvent {
+			return []llm.StreamEvent{
+				{Type: llm.SEMessageStart},
+				{Type: llm.SETextDelta, Text: "Reply #" + string(rune('0'+call))},
+				{Type: llm.SEMessageDelta, StopReason: "end_turn"},
+				{Type: llm.SEMessageStop},
+			}
+		},
+	}
+
+	mgr := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient("http://127.0.0.1:1", ""), prov)
+	sess, err := mgr.CreateSession(context.Background(), "")
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	// Send two turns
+	if err := mgr.SendMessage(context.Background(), sess.ID, "First prompt", func(StreamEvent) {}); err != nil {
+		t.Fatalf("turn 1: %v", err)
+	}
+	if err := mgr.SendMessage(context.Background(), sess.ID, "Second prompt", func(StreamEvent) {}); err != nil {
+		t.Fatalf("turn 2: %v", err)
+	}
+
+	// Rename session
+	renamed, err := mgr.RenameSession(context.Background(), sess.ID, "Renamed Thread")
+	if err != nil {
+		t.Fatalf("RenameSession: %v", err)
+	}
+	if renamed.Title != "Renamed Thread" {
+		t.Fatalf("expected Renamed Thread, got %q", renamed.Title)
+	}
+	if _, err := mgr.RenameSession(context.Background(), sess.ID, "   "); !errors.Is(err, ErrInvalidTitle) {
+		t.Fatalf("expected ErrInvalidTitle, got %v", err)
+	}
+
+	// Rewind to index 2 (second user prompt) and edit it
+	idx2 := 2
+	if err := mgr.SendMessageFrom(context.Background(), sess.ID, "Edited second prompt", &idx2, func(StreamEvent) {}); err != nil {
+		t.Fatalf("SendMessageFrom idx 2: %v", err)
+	}
+
+	detail, err := mgr.GetSession(context.Background(), sess.ID)
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+	if len(detail.Messages) != 4 {
+		t.Fatalf("expected 4 messages after rewind from 2, got %d: %+v", len(detail.Messages), detail.Messages)
+	}
+	if detail.Messages[2].Text != "Edited second prompt" || detail.Messages[3].Text != "Reply #3" {
+		t.Fatalf("unexpected rewound turn: %+v", detail.Messages[2:])
+	}
+
+	// Rewind from 0 clears transcript cleanly and resets with new message
+	idx0 := 0
+	if err := mgr.SendMessageFrom(context.Background(), sess.ID, "Fresh first prompt", &idx0, func(StreamEvent) {}); err != nil {
+		t.Fatalf("SendMessageFrom idx 0: %v", err)
+	}
+	detail2, _ := mgr.GetSession(context.Background(), sess.ID)
+	if len(detail2.Messages) != 2 || detail2.Messages[0].Text != "Fresh first prompt" {
+		t.Fatalf("expected 2 messages after idx 0 rewind, got %+v", detail2.Messages)
+	}
+
+	// Out-of-range rewind returns ErrInvalidMessageIndex
+	bad := 99
+	if err := mgr.SendMessageFrom(context.Background(), sess.ID, "Oops", &bad, func(StreamEvent) {}); !errors.Is(err, ErrInvalidMessageIndex) {
+		t.Fatalf("expected ErrInvalidMessageIndex, got %v", err)
+	}
+}

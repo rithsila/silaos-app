@@ -118,6 +118,21 @@ func TestSessionCRUD(t *testing.T) {
 		t.Fatalf("expected 1 session, got %d", len(listWrap.Sessions))
 	}
 
+	// Rename
+	reqRename := httptest.NewRequest(http.MethodPatch, "/api/chat/sessions/"+created.ID, bytes.NewBufferString(`{"title":"Updated Plan"}`))
+	recRename := httptest.NewRecorder()
+	h.ServeHTTP(recRename, reqRename)
+	if recRename.Code != http.StatusOK {
+		t.Fatalf("expected 200 on rename, got %d: %s", recRename.Code, recRename.Body.String())
+	}
+	var renamed chat.SessionSummary
+	if err := json.Unmarshal(recRename.Body.Bytes(), &renamed); err != nil {
+		t.Fatalf("unmarshal renamed: %v", err)
+	}
+	if renamed.Title != "Updated Plan" {
+		t.Fatalf("expected Updated Plan, got %q", renamed.Title)
+	}
+
 	// Delete
 	reqDel := httptest.NewRequest(http.MethodDelete, "/api/chat/sessions/"+created.ID, nil)
 	recDel := httptest.NewRecorder()

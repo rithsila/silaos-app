@@ -16,6 +16,7 @@ import {
   fetchChatConfig,
   fetchChatSession,
   fetchChatSessions,
+  renameChatSession,
   streamChatMessage,
   type ChatMessage,
   type ChatToolTrace,
@@ -126,8 +127,22 @@ export function ChatPage() {
     [activeSessionId, queryClient, resetStreamState, setActiveSessionId],
   )
 
+  const handleRenameSession = useCallback(
+    async (id: string, title: string) => {
+      await renameChatSession(id, title)
+      await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+      if (activeSessionId === id) {
+        await queryClient.invalidateQueries({ queryKey: ['chat', 'session', id] })
+      }
+    },
+    [activeSessionId, queryClient],
+  )
+
   const sendPrompt = useCallback(
-    async (promptText: string) => {
+    async (
+      promptText: string,
+      opts?: { rewindFromIndex?: number; preserveInput?: boolean },
+    ) => {
       const trimmed = promptText.trim()
       if (!trimmed || isStreaming) return
 
@@ -144,8 +159,12 @@ export function ChatPage() {
         sessionDetail?.id === targetId && Array.isArray(sessionDetail.messages)
           ? sessionDetail.messages
           : []
-      setOptimisticMessages([...baseMessages, { role: 'user', text: trimmed }])
-      setInput('')
+      const rewindIdx = opts?.rewindFromIndex
+      const prefix = typeof rewindIdx === 'number' ? baseMessages.slice(0, rewindIdx) : baseMessages
+      setOptimisticMessages([...prefix, { role: 'user', text: trimmed }])
+      if (!opts?.preserveInput) {
+        setInput('')
+      }
       setIsStreaming(true)
       setStreamingText('')
       setStreamingThinking('')
@@ -201,6 +220,7 @@ export function ChatPage() {
             }
           },
           ctrl.signal,
+          rewindIdx,
         )
       } catch (err) {
         if ((err as Error)?.name !== 'AbortError') {
@@ -227,6 +247,26 @@ export function ChatPage() {
       sessionDetail,
       setActiveSessionId,
     ],
+  )
+
+  const handleEditPrompt = useCallback(
+    async (index: number, newText: string) => {
+      await sendPrompt(newText, { rewindFromIndex: index, preserveInput: true })
+    },
+    [sendPrompt],
+  )
+
+  const handleRegenerate = useCallback(
+    async (assistantIndex: number) => {
+      const msgs = Array.isArray(sessionDetail?.messages) ? sessionDetail.messages : []
+      for (let i = assistantIndex - 1; i >= 0; i--) {
+        if (msgs[i]?.role === 'user' && msgs[i].text.trim()) {
+          await sendPrompt(msgs[i].text, { rewindFromIndex: i, preserveInput: true })
+          return
+        }
+      }
+    },
+    [sendPrompt, sessionDetail],
   )
 
   const handleResolveApproval = useCallback(
@@ -271,6 +311,7 @@ export function ChatPage() {
             activeSessionId={activeSessionId}
             onSelect={handleSelectSession}
             onNew={handleNewChat}
+            onRename={handleRenameSession}
             onDelete={handleDeleteSession}
           />
         </aside>
@@ -287,6 +328,7 @@ export function ChatPage() {
               activeSessionId={activeSessionId}
               onSelect={handleSelectSession}
               onNew={handleNewChat}
+              onRename={handleRenameSession}
               onDelete={handleDeleteSession}
             />
           </SheetContent>
@@ -338,6 +380,8 @@ export function ChatPage() {
           isStreaming={isStreaming}
           onResolveApproval={handleResolveApproval}
           onStarterPrompt={(prompt) => void sendPrompt(prompt)}
+          onEditPrompt={handleEditPrompt}
+          onRegenerate={handleRegenerate}
         />
 
         <div className="border-t border-border p-3 shrink-0 bg-background">
@@ -360,7 +404,6 @@ export function ChatPage() {
               placeholder={t('chat.placeholder')}
               rows={2}
               className="min-h-[44px] max-h-40 resize-none text-sm"
-              disabled={isStreaming}
             />
             {isStreaming ? (
               <Button

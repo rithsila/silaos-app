@@ -29,10 +29,12 @@ import (
 )
 
 var (
-	ErrSessionNotFound  = errors.New("chat session not found")
-	ErrSessionBusy      = errors.New("chat session is already processing a message")
-	ErrApprovalNotFound = errors.New("pending tool approval not found")
-	ErrLLMNotConfigured = errors.New("LLM API key is not configured (set AGENT_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY)")
+	ErrSessionNotFound     = errors.New("chat session not found")
+	ErrSessionBusy         = errors.New("chat session is already processing a message")
+	ErrApprovalNotFound    = errors.New("pending tool approval not found")
+	ErrInvalidMessageIndex = errors.New("message index out of range")
+	ErrInvalidTitle        = errors.New("title is required")
+	ErrLLMNotConfigured    = errors.New("LLM API key is not configured (set AGENT_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY)")
 )
 
 const approvalTimeout = 5 * time.Minute
@@ -252,6 +254,26 @@ func (m *Manager) DeleteSession(_ context.Context, id string) error {
 	return err
 }
 
+func (m *Manager) RenameSession(_ context.Context, id, title string) (SessionSummary, error) {
+	trimmed := strings.Join(strings.Fields(title), " ")
+	if trimmed == "" {
+		return SessionSummary{}, ErrInvalidTitle
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.sessions[id]
+	if !ok {
+		return SessionSummary{}, ErrSessionNotFound
+	}
+	s.Title = trimmed
+	s.UpdatedAt = time.Now().UTC()
+	m.sessions[id] = s
+	if err := m.saveIndexLocked(); err != nil {
+		return SessionSummary{}, err
+	}
+	return s, nil
+}
+
 func (m *Manager) ListMemories() ([]memory.Memory, error) {
 	items, err := m.memory.Scan()
 	if err != nil {
@@ -287,6 +309,10 @@ func (m *Manager) ResolveApproval(sessionID, toolUseID string, allow bool) error
 }
 
 func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(StreamEvent)) error {
+	return m.SendMessageFrom(ctx, id, text, nil, emit)
+}
+
+func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFromIndex *int, emit func(StreamEvent)) error {
 	if m.provider == nil {
 		return ErrLLMNotConfigured
 	}
@@ -311,7 +337,18 @@ func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(St
 		return ErrSessionBusy
 	}
 	rt.busy = true
-	if sessMeta.Title == "New Chat" {
+	if rewindFromIndex != nil {
+		if err := m.rewindTranscriptFromVisibleIndex(m.transcript.MainPath(id), *rewindFromIndex); err != nil {
+			rt.busy = false
+			m.mu.Unlock()
+			return err
+		}
+		if *rewindFromIndex == 0 {
+			sessMeta.Title = summarizeTitle(text)
+			m.sessions[id] = sessMeta
+			_ = m.saveIndexLocked()
+		}
+	} else if sessMeta.Title == "New Chat" {
 		sessMeta.Title = summarizeTitle(text)
 		m.sessions[id] = sessMeta
 		_ = m.saveIndexLocked()
@@ -509,59 +546,107 @@ Rules:
 - Use RecordMemory / RecallMemory to remember stable user preferences and ongoing project context across sessions.
 - Reply clearly and concisely.`
 
-func toChatMessages(msgs []llm.Message) []ChatMessage {
-	out := make([]ChatMessage, 0)
-	for _, msg := range msgs {
-		var textParts []string
-		var tools []ToolTrace
-		hasOnlyToolResults := true
+func foldLLMMessage(out *[]ChatMessage, msg llm.Message) bool {
+	var textParts []string
+	var tools []ToolTrace
+	hasOnlyToolResults := true
 
-		for _, b := range msg.Content {
-			switch b.Type {
-			case llm.BlockText:
-				if strings.TrimSpace(b.Text) != "" {
-					hasOnlyToolResults = false
-					textParts = append(textParts, b.Text)
-				}
-			case llm.BlockToolUse:
+	for _, b := range msg.Content {
+		switch b.Type {
+		case llm.BlockText:
+			if strings.TrimSpace(b.Text) != "" {
 				hasOnlyToolResults = false
-				tools = append(tools, ToolTrace{
-					ID:    b.ID,
-					Name:  b.Name,
-					Input: string(b.Input),
-				})
-			case llm.BlockToolResult:
-				// Attach tool results to the preceding assistant message's matching tool call.
-				resText := extractBlockText(b.Content)
-				attached := false
-				for i := len(out) - 1; i >= 0 && !attached; i-- {
-					for j := range out[i].ToolCalls {
-						if out[i].ToolCalls[j].ID == b.ToolUseID {
-							out[i].ToolCalls[j].Result = resText
-							out[i].ToolCalls[j].IsError = b.IsError
-							attached = true
-							break
-						}
+				textParts = append(textParts, b.Text)
+			}
+		case llm.BlockToolUse:
+			hasOnlyToolResults = false
+			tools = append(tools, ToolTrace{
+				ID:    b.ID,
+				Name:  b.Name,
+				Input: string(b.Input),
+			})
+		case llm.BlockToolResult:
+			// Attach tool results to the preceding assistant message's matching tool call.
+			resText := extractBlockText(b.Content)
+			attached := false
+			for i := len(*out) - 1; i >= 0 && !attached; i-- {
+				for j := range (*out)[i].ToolCalls {
+					if (*out)[i].ToolCalls[j].ID == b.ToolUseID {
+						(*out)[i].ToolCalls[j].Result = resText
+						(*out)[i].ToolCalls[j].IsError = b.IsError
+						attached = true
+						break
 					}
 				}
 			}
 		}
+	}
 
-		if msg.Role == llm.RoleUser && hasOnlyToolResults {
-			continue
-		}
-		joined := strings.TrimSpace(strings.Join(textParts, "\n"))
-		if joined == "" && len(tools) == 0 {
-			continue
-		}
-		// Skip internal compaction boundary summaries if empty/synthetic
-		out = append(out, ChatMessage{
-			Role:      string(msg.Role),
-			Text:      joined,
-			ToolCalls: tools,
-		})
+	if msg.Role == llm.RoleUser && hasOnlyToolResults {
+		return false
+	}
+	joined := strings.TrimSpace(strings.Join(textParts, "\n"))
+	if joined == "" && len(tools) == 0 {
+		return false
+	}
+	*out = append(*out, ChatMessage{
+		Role:      string(msg.Role),
+		Text:      joined,
+		ToolCalls: tools,
+	})
+	return true
+}
+
+func toChatMessages(msgs []llm.Message) []ChatMessage {
+	out := make([]ChatMessage, 0)
+	for _, msg := range msgs {
+		foldLLMMessage(&out, msg)
 	}
 	return out
+}
+
+func (m *Manager) rewindTranscriptFromVisibleIndex(path string, targetVisIdx int) error {
+	recs, err := m.transcript.Load(path)
+	if err != nil {
+		return err
+	}
+	if targetVisIdx < 0 {
+		return ErrInvalidMessageIndex
+	}
+
+	var out []ChatMessage
+	recIndices := make([]int, 0, len(recs))
+	for i, r := range recs {
+		if r.Type == "boundary" || r.Message == nil {
+			continue
+		}
+		if foldLLMMessage(&out, *r.Message) {
+			recIndices = append(recIndices, i)
+		}
+	}
+	if targetVisIdx >= len(recIndices) {
+		return ErrInvalidMessageIndex
+	}
+
+	cutAt := recIndices[targetVisIdx]
+	if cutAt == 0 {
+		err = os.Remove(path)
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var buf strings.Builder
+	for _, r := range recs[:cutAt] {
+		b, mErr := json.Marshal(r)
+		if mErr != nil {
+			return mErr
+		}
+		buf.Write(b)
+		buf.WriteByte('\n')
+	}
+	return os.WriteFile(path, []byte(buf.String()), 0o644)
 }
 
 func extractBlockText(blocks []llm.ContentBlock) string {

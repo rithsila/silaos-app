@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from './client'
+import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 
 export interface ChatSessionSummary {
   id: string
@@ -74,6 +74,10 @@ export async function fetchChatSession(id: string): Promise<ChatSessionDetail> {
   }
 }
 
+export async function renameChatSession(id: string, title: string): Promise<ChatSessionSummary> {
+  return apiPatch<ChatSessionSummary>(`/api/chat/sessions/${encodeURIComponent(id)}`, { title })
+}
+
 export async function deleteChatSession(id: string): Promise<void> {
   await apiDelete(`/api/chat/sessions/${encodeURIComponent(id)}`)
 }
@@ -94,11 +98,16 @@ export async function streamChatMessage(
   message: string,
   onEvent: (event: ChatStreamEvent) => void,
   signal?: AbortSignal,
+  rewindFromIndex?: number,
 ): Promise<void> {
+  const payload: { message: string; rewindFromIndex?: number } = { message }
+  if (typeof rewindFromIndex === 'number') {
+    payload.rewindFromIndex = rewindFromIndex
+  }
   const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(payload),
     signal,
   })
 

@@ -269,4 +269,101 @@ describe('ChatPage', () => {
 
     expect(await screen.findByText('Here is your summary.')).toBeInTheDocument()
   })
+
+  it('renders markdown, copies messages, edits prompt, and regenerates reply', async () => {
+    const session = {
+      id: 'sess-edit',
+      title: 'Habits thread',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    let messages = [
+      { role: 'user', text: 'Original prompt' },
+      { role: 'assistant', text: '**Bold answer**\n\n```ts\nconst x = 1\n```' },
+    ]
+    const postedPayloads: Array<{ message: string; rewindFromIndex?: number }> = []
+
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-edit', () =>
+        HttpResponse.json({ ...session, messages }),
+      ),
+      http.post('/api/chat/sessions/sess-edit/message', async ({ request }) => {
+        const body = (await request.json()) as { message: string; rewindFromIndex?: number }
+        postedPayloads.push(body)
+        messages = [
+          { role: 'user', text: body.message },
+          { role: 'assistant', text: `Reply for: ${body.message}` },
+        ]
+        return sseResponse([
+          `event: text\ndata: ${JSON.stringify({ type: 'text', text: `Reply for: ${body.message}` })}\n\n`,
+          'event: done\ndata: {"type":"done"}\n\n',
+        ])
+      }),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-edit' })
+    const user = userEvent.setup()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
+    renderWithProviders(<ChatPage />)
+
+    // Markdown bold renders cleanly (without literal **)
+    expect(await screen.findByText('Bold answer')).toBeInTheDocument()
+
+    // Copy assistant reply and code block
+    const copyButtons = screen.getAllByRole('button', { name: 'Copy' })
+    await user.click(copyButtons[1])
+    expect(writeText).toHaveBeenCalledWith('**Bold answer**\n\n```ts\nconst x = 1\n```')
+
+    await user.click(screen.getByRole('button', { name: 'Copy code' }))
+    expect(writeText).toHaveBeenCalledWith('const x = 1')
+
+    // Edit user prompt and resend
+    await user.click(screen.getByRole('button', { name: 'Edit prompt' }))
+    const editBox = screen.getByLabelText('Edit prompt')
+    await user.clear(editBox)
+    await user.type(editBox, 'Updated prompt')
+    await user.click(screen.getByRole('button', { name: 'Save & Send' }))
+
+    expect(await screen.findByText('Reply for: Updated prompt')).toBeInTheDocument()
+    expect(postedPayloads[0]).toEqual({ message: 'Updated prompt', rewindFromIndex: 0 })
+
+    // Regenerate assistant reply re-sends current user prompt from index 0
+    await user.click(screen.getByRole('button', { name: 'Regenerate' }))
+    await waitFor(() => expect(postedPayloads).toHaveLength(2))
+    expect(postedPayloads[1]).toEqual({ message: 'Updated prompt', rewindFromIndex: 0 })
+  })
+
+  it('renames a conversation thread inline', async () => {
+    let session = {
+      id: 'sess-ren',
+      title: 'Old Title',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-ren', () =>
+        HttpResponse.json({ ...session, messages: [] }),
+      ),
+      http.patch('/api/chat/sessions/sess-ren', async ({ request }) => {
+        const body = (await request.json()) as { title: string }
+        session = { ...session, title: body.title }
+        return HttpResponse.json(session)
+      }),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-ren' })
+    const user = userEvent.setup()
+    renderWithProviders(<ChatPage />)
+
+    expect(await screen.findByText('Old Title')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rename conversation' }))
+    const titleInput = screen.getByLabelText('Rename conversation')
+    await user.clear(titleInput)
+    await user.type(titleInput, 'Weekly Goals{Enter}')
+
+    expect(await screen.findByText('Weekly Goals')).toBeInTheDocument()
+  })
 })
