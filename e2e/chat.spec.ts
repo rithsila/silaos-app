@@ -29,13 +29,30 @@ test.describe('Norma Chat Sidebar Page', () => {
     await expect(page.getByRole('heading', { name: /Norma AI Assistant/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Summarize today's tasks and schedule/i })).toBeVisible();
 
-    await page.getByRole('button', { name: /New Chat/i }).click();
-    await expect(page.getByRole('button', { name: /New Chat/i }).first()).toBeVisible();
+    const beforeRes = await page.request.get('/api/chat/sessions');
+    expect(beforeRes.ok()).toBe(true);
+    const beforeData = (await beforeRes.json()) as { sessions: Array<{ id: string }> };
+    const beforeIds = new Set(beforeData.sessions.map((s) => s.id));
 
-    // Verify the Go sidecar persisted the created session via /api/chat/sessions
-    const res = await page.request.get('/api/chat/sessions');
-    expect(res.ok()).toBe(true);
-    const data = (await res.json()) as { sessions: Array<{ id: string; title: string }> };
-    expect(data.sessions.length).toBeGreaterThanOrEqual(1);
+    const newChatButton = page.getByRole('button', { name: 'New Chat', exact: true }).first();
+    await newChatButton.click();
+
+    // Verify the Go sidecar persisted the newly created session via /api/chat/sessions
+    await expect
+      .poll(async () => {
+        const res = await page.request.get('/api/chat/sessions');
+        if (!res.ok()) return 0;
+        const data = (await res.json()) as { sessions: Array<{ id: string }> };
+        return data.sessions.filter((s) => !beforeIds.has(s.id)).length;
+      })
+      .toBe(1);
+
+    const afterRes = await page.request.get('/api/chat/sessions');
+    const afterData = (await afterRes.json()) as { sessions: Array<{ id: string }> };
+    for (const s of afterData.sessions) {
+      if (!beforeIds.has(s.id)) {
+        await page.request.delete(`/api/chat/sessions/${s.id}`);
+      }
+    }
   });
 });
