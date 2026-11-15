@@ -90,5 +90,9 @@ upload/
 # Turbo
 .turbo/
 
+# Worktrees & AI agent local data
+.worktrees/
+.lifeos-agent/
+
 # OS
 Thumbs.db
