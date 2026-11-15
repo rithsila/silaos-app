@@ -178,4 +178,52 @@ describe('ChatPage', () => {
     })
     expect(invalidateSpy).toHaveBeenCalled()
   })
+
+  it('aborts active stream when component unmounts', async () => {
+    let observedSignal: AbortSignal | undefined
+    const session = {
+      id: 'sess-300',
+      title: 'Abort check',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-300', () =>
+        HttpResponse.json({ ...session, messages: [] }),
+      ),
+      http.post('/api/chat/sessions/sess-300/message', ({ request }) => {
+        observedSignal = request.signal
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode('event: text\ndata: {"type":"text","text":"Working..."}\n\n'),
+            )
+          },
+        })
+        return new HttpResponse(stream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        })
+      }),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-300' })
+    const user = userEvent.setup()
+    const { unmount } = renderWithProviders(<ChatPage />)
+
+    const input = await screen.findByPlaceholderText(
+      'Ask Norma about your tasks, schedule, habits, or notes...',
+    )
+    await user.type(input, 'Long running prompt')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    expect(await screen.findByText('Working...')).toBeInTheDocument()
+    expect(observedSignal).toBeDefined()
+    expect(observedSignal?.aborted).toBe(false)
+
+    unmount()
+    expect(observedSignal?.aborted).toBe(true)
+  })
 })

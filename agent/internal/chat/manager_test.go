@@ -246,3 +246,79 @@ func TestMissingProviderReturnsClearError(t *testing.T) {
 		t.Fatalf("expected ErrLLMNotConfigured, got %v", err)
 	}
 }
+
+func TestMultiToolApprovalsProduceUniqueIDs(t *testing.T) {
+	var created atomic.Int32
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/tasks" && r.Method == http.MethodPost {
+			created.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":"task-x","title":"ok"}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer backend.Close()
+
+	dir := t.TempDir()
+	prov := &scriptedProvider{
+		fn: func(_ context.Context, _ llm.CompletionRequest, call int) []llm.StreamEvent {
+			if call == 1 {
+				return []llm.StreamEvent{
+					{Type: llm.SEMessageStart},
+					{Type: llm.SEToolUseStart, ToolID: "tool_1", ToolName: "lifeos_tasks_create"},
+					{Type: llm.SEToolInputJSON, Text: `{"body":{"title":"Task 1"}}`},
+					{Type: llm.SEToolUseStart, ToolID: "tool_2", ToolName: "lifeos_tasks_create"},
+					{Type: llm.SEToolInputJSON, Text: `{"body":{"title":"Task 2"}}`},
+					{Type: llm.SEMessageDelta, StopReason: "tool_use"},
+					{Type: llm.SEMessageStop},
+				}
+			}
+			return []llm.StreamEvent{
+				{Type: llm.SEMessageStart},
+				{Type: llm.SETextDelta, Text: "Created both."},
+				{Type: llm.SEMessageDelta, StopReason: "end_turn"},
+				{Type: llm.SEMessageStop},
+			}
+		},
+	}
+
+	mgr := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient(backend.URL, ""), prov)
+	sess, err := mgr.CreateSession(context.Background(), "Multi approve")
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	approvalCh := make(chan string, 4)
+	done := make(chan error, 1)
+	go func() {
+		done <- mgr.SendMessage(context.Background(), sess.ID, "create two tasks", func(ev StreamEvent) {
+			if ev.Type == "approval_required" && ev.Approval != nil {
+				approvalCh <- ev.Approval.ToolUseID
+			}
+		})
+	}()
+
+	seen := make(map[string]bool)
+	for i := 0; i < 2; i++ {
+		select {
+		case aid := <-approvalCh:
+			if seen[aid] {
+				t.Fatalf("duplicate approval ToolUseID %q for tool call %d", aid, i+1)
+			}
+			seen[aid] = true
+			if err := mgr.ResolveApproval(sess.ID, aid, true); err != nil {
+				t.Fatalf("ResolveApproval(%q): %v", aid, err)
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatalf("timed out waiting for approval #%d", i+1)
+		}
+	}
+
+	if err := <-done; err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+	if created.Load() != 2 {
+		t.Fatalf("expected 2 created tasks, got %d", created.Load())
+	}
+}

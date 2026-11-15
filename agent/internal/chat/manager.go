@@ -85,9 +85,8 @@ type StreamEvent struct {
 }
 
 type sessionRuntime struct {
-	busy          bool
-	lastToolUseID string
-	pending       map[string]chan bool
+	busy    bool
+	pending map[string]chan bool
 }
 
 // Manager coordinates Norma sessions, transcripts, memory, and tool approvals.
@@ -305,7 +304,6 @@ func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(St
 		return ErrSessionBusy
 	}
 	rt.busy = true
-	rt.lastToolUseID = ""
 	if sessMeta.Title == "New Chat" {
 		sessMeta.Title = summarizeTitle(text)
 		m.sessions[id] = sessMeta
@@ -335,12 +333,9 @@ func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(St
 	}
 
 	requestApproval := func(actx context.Context, toolName string, input json.RawMessage) bool {
-		m.mu.Lock()
-		callID := rt.lastToolUseID
-		if callID == "" {
-			callID = "apr_" + newID()
-		}
+		callID := "apr_" + newID()
 		ch := make(chan bool, 1)
+		m.mu.Lock()
 		rt.pending[callID] = ch
 		m.mu.Unlock()
 
@@ -455,9 +450,6 @@ func (m *Manager) SendMessage(ctx context.Context, id, text string, emit func(St
 			emit(StreamEvent{Type: "thinking", Text: ev.Text})
 		case harness.KindToolUse:
 			if ev.ToolUse != nil {
-				m.mu.Lock()
-				rt.lastToolUseID = ev.ToolUse.ID
-				m.mu.Unlock()
 				emit(StreamEvent{
 					Type: "tool_use",
 					Tool: &ToolTrace{

@@ -57,6 +57,12 @@ export function ChatPage() {
 
   const abortRef = useRef<AbortController | null>(null)
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
   const { data: config } = useQuery({
     queryKey: ['chat', 'config'],
     queryFn: fetchChatConfig,
