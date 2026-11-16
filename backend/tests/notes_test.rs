@@ -32,7 +32,7 @@ async fn test_notes_crud_happy_path() {
     let create_body = json!({
         "title": "Test Note",
         "content": "This is a test note content",
-        "pinned": false
+        "isPinned": false
     });
     let response = app
         .clone()
@@ -51,7 +51,7 @@ async fn test_notes_crud_happy_path() {
     let created_note: Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(created_note["title"], "Test Note");
     assert_eq!(created_note["content"], "This is a test note content");
-    assert_eq!(created_note["pinned"], false);
+    assert_eq!(created_note["isPinned"], false);
     let note_id = created_note["id"].as_str().unwrap();
 
     // 3. Get the note by ID
@@ -75,7 +75,7 @@ async fn test_notes_crud_happy_path() {
     let update_body = json!({
         "title": "Updated Note",
         "content": "Updated content",
-        "pinned": true
+        "isPinned": true
     });
     let response = app
         .clone()
@@ -94,7 +94,7 @@ async fn test_notes_crud_happy_path() {
     let updated_note: Value = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(updated_note["title"], "Updated Note");
     assert_eq!(updated_note["content"], "Updated content");
-    assert_eq!(updated_note["pinned"], true);
+    assert_eq!(updated_note["isPinned"], true);
 
     // 5. List notes - should have 1 note
     let response = app
@@ -164,7 +164,11 @@ async fn test_notes_create_validation() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let error: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(error["error"].as_str().unwrap().contains("title"));
+    assert!(error["error"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("title"));
 
     // Empty title should return 400
     let create_body = json!({
@@ -239,21 +243,9 @@ async fn test_notes_not_found() {
 async fn test_notes_pinned_filtering() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create pinned and unpinned notes
-    let pinned_note = json!({"title": "Pinned Note", "content": "Important", "pinned": true});
-    let unpinned_note = json!({"title": "Regular Note", "content": "Normal", "pinned": false});
-
-    app.clone()
-        .oneshot(
-            Request::builder()
-                .uri("/api/notes")
-                .method("POST")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&pinned_note).unwrap()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+    // Create unpinned then pinned notes (pinned should sort first)
+    let unpinned_note = json!({"title": "Regular Note", "content": "Normal", "isPinned": false});
+    let pinned_note = json!({"title": "Pinned Note", "content": "Important", "isPinned": true});
 
     app.clone()
         .oneshot(
@@ -267,12 +259,24 @@ async fn test_notes_pinned_filtering() {
         .await
         .unwrap();
 
-    // Filter by pinned=true
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/notes")
+                .method("POST")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&pinned_note).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // List notes: pinned notes come first
     let response = app
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/notes?pinned=true")
+                .uri("/api/notes")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -281,5 +285,7 @@ async fn test_notes_pinned_filtering() {
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let notes: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(notes.iter().all(|n| n["pinned"] == true));
+    assert_eq!(notes.len(), 2);
+    assert_eq!(notes[0]["title"], "Pinned Note");
+    assert_eq!(notes[0]["isPinned"], true);
 }

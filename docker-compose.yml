@@ -1,10 +1,10 @@
 services:
-  life-os:
+  silaos:
     build:
       context: .
       dockerfile: Dockerfile
-    image: life-os
-    container_name: life-os
+    image: silaos
+    container_name: silaos
     restart: unless-stopped
     init: true
     ports:
@@ -14,20 +14,27 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
       DATABASE_URL: "file:/app/data/prod.db"
       BACKEND_URL: "http://localhost:8080"
+      AGENT_URL: "http://localhost:8081"
+      AGENT_DATA_DIR: "/app/data/agent"
+      AGENT_PROVIDER: "${AGENT_PROVIDER:-}"
+      AGENT_MODEL: "${AGENT_MODEL:-}"
+      AGENT_BASE_URL: "${AGENT_BASE_URL:-}"
+      AGENT_API_KEY: "${AGENT_API_KEY:-}"
       # Optional: set API_KEY to require Bearer token on all /api/* requests
       # API_KEY: ""
       # Optional: restrict CORS to a specific origin
       # ALLOWED_ORIGIN: "https://yourdomain.com"
     volumes:
-      - life-os-data:/app/data
+      - silaos-data:/app/data
     healthcheck:
       test: >
-        wget -qO- http://localhost:3000/ > /dev/null &&
-        wget -qO- http://localhost:8080/health > /dev/null
+        curl -sf http://localhost:3000/ > /dev/null &&
+        curl -sf http://localhost:8080/health > /dev/null &&
+        curl -sf http://localhost:8081/health > /dev/null
       interval: 30s
       timeout: 10s
       start_period: 60s
       retries: 3
 
 volumes:
-  life-os-data:
+  silaos-data:

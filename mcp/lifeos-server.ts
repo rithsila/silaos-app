@@ -238,7 +238,8 @@ async function handle(msg: Json) {
 
 let buf = Buffer.alloc(0)
 process.stdin.on("data", (chunk) => {
-  buf = Buffer.concat([buf, chunk])
+  const chunkBuf = typeof chunk === "string" ? Buffer.from(chunk) : chunk
+  buf = Buffer.concat([buf, chunkBuf])
   while (true) {
     const headerEnd = buf.indexOf("\r\n\r\n")
     if (headerEnd === -1) {

@@ -797,10 +797,10 @@ async fn create_recurring_instance(
     original: &Task,
 ) -> Result<String, sqlx::Error> {
     let new_id = cuid::cuid1().map_err(|e| {
-        sqlx::Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("ID generation failed: {}", e),
-        ))
+        sqlx::Error::Io(std::io::Error::other(format!(
+            "ID generation failed: {}",
+            e
+        )))
     })?;
 
     let now = PrismaDateTime::now().0;
@@ -846,10 +846,10 @@ async fn create_recurring_instance(
     for tag_row in tag_rows {
         let tag_id: String = tag_row.try_get("tagId")?;
         let task_tag_id = cuid::cuid1().map_err(|e| {
-            sqlx::Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("ID generation failed: {}", e),
-            ))
+            sqlx::Error::Io(std::io::Error::other(format!(
+                "ID generation failed: {}",
+                e
+            )))
         })?;
 
         sqlx::query("INSERT INTO TaskTag (id, taskId, tagId) VALUES (?, ?, ?)")

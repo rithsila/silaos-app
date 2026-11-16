@@ -12,7 +12,6 @@ use tower::ServiceExt;
 async fn test_get_stats_endpoint() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Get stats - should return empty stats initially
     let response = app
         .clone()
         .oneshot(
@@ -27,26 +26,18 @@ async fn test_get_stats_endpoint() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Verify stats structure
-    assert!(stats.get("tasks").is_some());
-    assert!(stats.get("projects").is_some());
-    assert!(stats.get("habits").is_some());
-    assert!(stats.get("notes").is_some());
-    assert!(stats.get("goals").is_some());
-
-    // All counts should be 0 initially
-    assert_eq!(stats["tasks"], 0);
-    assert_eq!(stats["projects"], 0);
-    assert_eq!(stats["habits"], 0);
-    assert_eq!(stats["notes"], 0);
-    assert_eq!(stats["goals"], 0);
+    let counts = &stats["counts"];
+    assert_eq!(counts["tasks"], 0);
+    assert_eq!(counts["projects"], 0);
+    assert_eq!(counts["habits"], 0);
+    assert_eq!(counts["notes"], 0);
+    assert_eq!(counts["goals"], 0);
 }
 
 #[tokio::test]
 async fn test_stats_with_data() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create some tasks
     for i in 1..=3 {
         let body = json!({"title": format!("Task {}", i), "status": "todo"});
         app.clone()
@@ -62,7 +53,6 @@ async fn test_stats_with_data() {
             .unwrap();
     }
 
-    // Create some notes
     for i in 1..=2 {
         let body = json!({"title": format!("Note {}", i), "content": "Test content"});
         app.clone()
@@ -78,7 +68,6 @@ async fn test_stats_with_data() {
             .unwrap();
     }
 
-    // Get stats - should reflect created data
     let response = app
         .clone()
         .oneshot(
@@ -93,15 +82,14 @@ async fn test_stats_with_data() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert_eq!(stats["tasks"], 3);
-    assert_eq!(stats["notes"], 2);
+    assert_eq!(stats["counts"]["tasks"], 3);
+    assert_eq!(stats["counts"]["notes"], 2);
 }
 
 #[tokio::test]
 async fn test_export_data_endpoint() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create some test data
     let task_body = json!({"title": "Export Test Task", "status": "todo"});
     app.clone()
         .oneshot(
@@ -115,7 +103,6 @@ async fn test_export_data_endpoint() {
         .await
         .unwrap();
 
-    // Export data
     let response = app
         .clone()
         .oneshot(
@@ -128,18 +115,18 @@ async fn test_export_data_endpoint() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let export_data: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let export_payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Verify export structure
-    assert!(export_data.get("tasks").is_some());
-    assert!(export_data.get("projects").is_some());
-    assert!(export_data.get("habits").is_some());
-    assert!(export_data.get("notes").is_some());
-    assert!(export_data.get("goals").is_some());
-    assert!(export_data.get("exportDate").is_some());
+    assert!(export_payload.get("version").is_some());
+    assert!(export_payload.get("exportedAt").is_some());
+    let data = &export_payload["data"];
+    assert!(data.get("tasks").is_some());
+    assert!(data.get("projects").is_some());
+    assert!(data.get("habits").is_some());
+    assert!(data.get("notes").is_some());
+    assert!(data.get("goals").is_some());
 
-    // Verify tasks were exported
-    let tasks = export_data["tasks"].as_array().unwrap();
+    let tasks = data["tasks"].as_array().unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0]["title"], "Export Test Task");
 }
@@ -148,34 +135,29 @@ async fn test_export_data_endpoint() {
 async fn test_import_data_endpoint() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Prepare import data
     let import_body = json!({
-        "tasks": [
-            {
-                "id": "import_task_1",
-                "title": "Imported Task",
-                "status": "todo",
-                "priority": "high",
-                "createdAt": common::now_ms(),
-                "updatedAt": common::now_ms()
-            }
-        ],
-        "notes": [
-            {
-                "id": "import_note_1",
-                "title": "Imported Note",
-                "content": "Imported content",
-                "pinned": false,
-                "createdAt": common::now_ms(),
-                "updatedAt": common::now_ms()
-            }
-        ],
-        "projects": [],
-        "habits": [],
-        "goals": []
+        "version": "1.0.0",
+        "data": {
+            "tasks": [
+                {
+                    "id": "import_task_1",
+                    "title": "Imported Task",
+                    "status": "todo",
+                    "priority": "high"
+                }
+            ],
+            "projects": [
+                {
+                    "id": "import_project_1",
+                    "name": "Imported Project",
+                    "status": "active"
+                }
+            ],
+            "habits": [],
+            "goals": []
+        }
     });
 
-    // Import data
     let response = app
         .clone()
         .oneshot(
@@ -190,7 +172,6 @@ async fn test_import_data_endpoint() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Verify imported data exists
     let response = app
         .clone()
         .oneshot(
@@ -210,23 +191,22 @@ async fn test_import_data_endpoint() {
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/notes")
+                .uri("/api/projects")
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let notes: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
-    assert_eq!(notes.len(), 1);
-    assert_eq!(notes[0]["title"], "Imported Note");
+    let projects: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(projects.len(), 1);
+    assert_eq!(projects[0]["name"], "Imported Project");
 }
 
 #[tokio::test]
 async fn test_backup_and_restore() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create original data
     let task_body = json!({"title": "Backup Test", "status": "todo"});
     app.clone()
         .oneshot(
@@ -240,7 +220,6 @@ async fn test_backup_and_restore() {
         .await
         .unwrap();
 
-    // Export (backup) data
     let response = app
         .clone()
         .oneshot(
@@ -254,7 +233,6 @@ async fn test_backup_and_restore() {
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let backup_data: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Delete the task
     let response = app
         .clone()
         .oneshot(
@@ -280,7 +258,6 @@ async fn test_backup_and_restore() {
         .await
         .unwrap();
 
-    // Verify task is deleted
     let response = app
         .clone()
         .oneshot(
@@ -295,7 +272,6 @@ async fn test_backup_and_restore() {
     let tasks: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(tasks.len(), 0);
 
-    // Restore from backup
     let response = app
         .clone()
         .oneshot(
@@ -310,7 +286,6 @@ async fn test_backup_and_restore() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Verify data is restored
     let response = app
         .clone()
         .oneshot(
@@ -323,14 +298,13 @@ async fn test_backup_and_restore() {
         .unwrap();
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let tasks: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(tasks.len() > 0);
+    assert!(!tasks.is_empty());
 }
 
 #[tokio::test]
 async fn test_clear_all_data() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create test data
     let task_body = json!({"title": "Test Task", "status": "todo"});
     app.clone()
         .oneshot(
@@ -357,7 +331,6 @@ async fn test_clear_all_data() {
         .await
         .unwrap();
 
-    // Verify data exists
     let response = app
         .clone()
         .oneshot(
@@ -370,24 +343,25 @@ async fn test_clear_all_data() {
         .unwrap();
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(stats["tasks"].as_i64().unwrap() > 0);
-    assert!(stats["notes"].as_i64().unwrap() > 0);
+    assert!(stats["counts"]["tasks"].as_i64().unwrap() > 0);
+    assert!(stats["counts"]["notes"].as_i64().unwrap() > 0);
 
-    // Clear all data
     let response = app
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/data/clear")
+                .uri("/api/data/reset")
                 .method("DELETE")
-                .body(Body::empty())
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_vec(&json!({"confirm": "RESET_ALL_DATA"})).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    // Verify all data is cleared
     let response = app
         .clone()
         .oneshot(
@@ -400,6 +374,6 @@ async fn test_clear_all_data() {
         .unwrap();
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let stats: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert_eq!(stats["tasks"], 0);
-    assert_eq!(stats["notes"], 0);
+    assert_eq!(stats["counts"]["tasks"], 0);
+    assert_eq!(stats["counts"]["notes"], 0);
 }

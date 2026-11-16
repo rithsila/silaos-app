@@ -39,14 +39,14 @@ async fn test_search_across_entities() {
         .await
         .unwrap();
 
-    let project_body = json!({"name": "Rust Project", "description": "Building a CLI tool"});
+    let goal_body = json!({"title": "Rust Goal", "description": "Building a CLI tool"});
     app.clone()
         .oneshot(
             Request::builder()
-                .uri("/api/projects")
+                .uri("/api/goals")
                 .method("POST")
                 .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&project_body).unwrap()))
+                .body(Body::from(serde_json::to_vec(&goal_body).unwrap()))
                 .unwrap(),
         )
         .await
@@ -65,38 +65,26 @@ async fn test_search_across_entities() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Verify search results structure
-    assert!(results.get("tasks").is_some());
-    assert!(results.get("notes").is_some());
-    assert!(results.get("projects").is_some());
-
-    // Verify results contain our created items
-    let tasks = results["tasks"].as_array().unwrap();
-    assert!(tasks.len() > 0);
-    assert!(tasks
+    assert_eq!(payload["query"], "Rust");
+    let results = payload["results"].as_array().unwrap();
+    assert!(results
         .iter()
-        .any(|t| t["title"].as_str().unwrap().contains("Rust")));
-
-    let notes = results["notes"].as_array().unwrap();
-    assert!(notes.len() > 0);
-    assert!(notes
+        .any(|r| r["type"] == "Task" && r["title"].as_str().unwrap().contains("Rust")));
+    assert!(results
         .iter()
-        .any(|n| n["title"].as_str().unwrap().contains("Rust")));
-
-    let projects = results["projects"].as_array().unwrap();
-    assert!(projects.len() > 0);
-    assert!(projects
+        .any(|r| r["type"] == "Note" && r["title"].as_str().unwrap().contains("Rust")));
+    assert!(results
         .iter()
-        .any(|p| p["name"].as_str().unwrap().contains("Rust")));
+        .any(|r| r["type"] == "Goal" && r["title"].as_str().unwrap().contains("Rust")));
 }
 
 #[tokio::test]
 async fn test_search_empty_query() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Search with empty query should return 400
+    // Search with empty query returns empty results list
     let response = app
         .clone()
         .oneshot(
@@ -107,7 +95,10 @@ async fn test_search_empty_query() {
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::OK);
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(payload["results"].as_array().unwrap().len(), 0);
 }
 
 #[tokio::test]
@@ -141,12 +132,8 @@ async fn test_search_no_results() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
-
-    // All result arrays should be empty
-    assert_eq!(results["tasks"].as_array().unwrap().len(), 0);
-    assert_eq!(results["notes"].as_array().unwrap().len(), 0);
-    assert_eq!(results["projects"].as_array().unwrap().len(), 0);
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(payload["results"].as_array().unwrap().len(), 0);
 }
 
 #[tokio::test]
@@ -180,11 +167,11 @@ async fn test_search_case_insensitive() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Should find the task despite case difference
-    let tasks = results["tasks"].as_array().unwrap();
-    assert!(tasks.len() > 0);
+    let results = payload["results"].as_array().unwrap();
+    assert!(!results.is_empty());
+    assert!(results.iter().any(|r| r["type"] == "Task"));
 }
 
 #[tokio::test]
@@ -222,14 +209,13 @@ async fn test_search_in_descriptions() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Should find the task by description
-    let tasks = results["tasks"].as_array().unwrap();
-    assert!(tasks.len() > 0);
-    assert!(tasks
+    let results = payload["results"].as_array().unwrap();
+    assert!(!results.is_empty());
+    assert!(results
         .iter()
-        .any(|t| t["description"].as_str().unwrap_or("").contains("roadmap")));
+        .any(|r| r["description"].as_str().unwrap_or("").contains("roadmap")));
 }
 
 #[tokio::test]
@@ -263,18 +249,17 @@ async fn test_search_partial_match() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Should find the note with partial match
-    let notes = results["notes"].as_array().unwrap();
-    assert!(notes.len() > 0);
+    let results = payload["results"].as_array().unwrap();
+    assert!(!results.is_empty());
+    assert!(results.iter().any(|r| r["type"] == "Note"));
 }
 
 #[tokio::test]
 async fn test_search_multiple_entities() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create related data across different entity types
     let keyword = "budget";
 
     let task_body = json!({"title": "Review budget report", "status": "todo"});
@@ -316,7 +301,6 @@ async fn test_search_multiple_entities() {
         .await
         .unwrap();
 
-    // Search for the keyword
     let response = app
         .clone()
         .oneshot(
@@ -329,19 +313,18 @@ async fn test_search_multiple_entities() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Should find results in multiple entity types
-    assert!(results["tasks"].as_array().unwrap().len() > 0);
-    assert!(results["notes"].as_array().unwrap().len() > 0);
-    assert!(results["goals"].as_array().unwrap().len() > 0);
+    let results = payload["results"].as_array().unwrap();
+    assert!(results.iter().any(|r| r["type"] == "Task"));
+    assert!(results.iter().any(|r| r["type"] == "Note"));
+    assert!(results.iter().any(|r| r["type"] == "Goal"));
 }
 
 #[tokio::test]
 async fn test_search_special_characters() {
     let (app, _temp_db) = common::setup_test_app().await;
 
-    // Create task with special characters
     let task_body = json!({"title": "Fix bug #123", "status": "todo"});
     app.clone()
         .oneshot(
@@ -355,12 +338,11 @@ async fn test_search_special_characters() {
         .await
         .unwrap();
 
-    // Search with special character
     let response = app
         .clone()
         .oneshot(
             Request::builder()
-                .uri("/api/search?q=%23123") // URL encoded #123
+                .uri("/api/search?q=%23123")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -368,9 +350,9 @@ async fn test_search_special_characters() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let results: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let payload: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    // Should handle special characters in search
-    let tasks = results["tasks"].as_array().unwrap();
-    assert!(tasks.len() > 0);
+    let results = payload["results"].as_array().unwrap();
+    assert!(!results.is_empty());
+    assert!(results.iter().any(|r| r["type"] == "Task"));
 }

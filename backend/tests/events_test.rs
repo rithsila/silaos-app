@@ -284,7 +284,7 @@ async fn test_events_date_filtering() {
     let (app, _temp_db) = common::setup_test_app().await;
 
     // Create events for different dates
-    let dates = vec![
+    let dates = [
         "2026-06-01T10:00:00Z",
         "2026-06-10T10:00:00Z",
         "2026-06-20T10:00:00Z",

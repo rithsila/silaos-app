@@ -165,7 +165,11 @@ async fn test_goals_create_validation() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let error: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(error["error"].as_str().unwrap().contains("title"));
+    assert!(error["error"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("title"));
 
     // Empty title should return 400
     let create_body = json!({

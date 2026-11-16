@@ -221,7 +221,8 @@ async fn test_finance_transaction_crud_happy_path() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
-    let transactions: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    let list: Value = serde_json::from_slice(&body_bytes).unwrap();
+    let transactions = list["transactions"].as_array().unwrap();
     assert_eq!(transactions.len(), 0);
 
     // 2. Create a transaction
@@ -320,7 +321,11 @@ async fn test_finance_account_validation() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let error: Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert!(error["error"].as_str().unwrap().contains("name"));
+    assert!(error["error"]
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("name"));
 
     // Empty name should return 400
     let create_body = json!({

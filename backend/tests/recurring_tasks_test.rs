@@ -7,8 +7,8 @@ mod common;
 async fn test_recurring_task_daily() {
     let (pool, _tmp) = common::setup_test_db().await;
 
-    // Create a recurring daily task that was completed yesterday
-    let yesterday = chrono::Utc::now() - chrono::Duration::days(1);
+    // Create a recurring daily task completed at least 1 full day before today_start_ms
+    let yesterday = chrono::Utc::now() - chrono::Duration::days(2);
     let yesterday_ms = yesterday.timestamp_millis();
     let due_date_ms = yesterday_ms;
 
@@ -151,7 +151,7 @@ async fn process_recurring_tasks_for_test(pool: &SqlitePool) -> Result<usize, sq
     let mut created_count = 0;
 
     for row in rows {
-        let task_id: String = row.try_get("id")?;
+        let _task_id: String = row.try_get("id")?;
         let status: String = row.try_get("status")?;
         let recurrence: Option<String> = row.try_get("recurrence")?;
         let completed_at: Option<i64> = row.try_get("completedAt")?;
@@ -186,10 +186,10 @@ async fn process_recurring_tasks_for_test(pool: &SqlitePool) -> Result<usize, sq
         if should_create {
             // Create new task
             let new_id = cuid::cuid1().map_err(|e| {
-                sqlx::Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("ID generation failed: {}", e),
-                ))
+                sqlx::Error::Io(std::io::Error::other(format!(
+                    "ID generation failed: {}",
+                    e
+                )))
             })?;
 
             let now_ms = chrono::Utc::now().timestamp_millis();
