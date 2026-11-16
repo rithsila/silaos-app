@@ -1,9 +1,9 @@
 {
-  "name": "life-os",
+  "name": "silaos",
   "version": "1.0.0",
-  "description": "🧠 A beautiful, local-first personal life management system built with Next.js 16",
+  "description": "🧠 A local-first personal life management system built with Next.js 16",
   "keywords": [
-    "life-os",
+    "silaos",
     "personal-os",
     "productivity",
     "nextjs",
@@ -11,16 +11,8 @@
     "tailwindcss",
     "prisma"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/life-os/life-os.git"
-  },
   "license": "MIT",
-  "author": "Life OS Contributors",
-  "bugs": {
-    "url": "https://github.com/life-os/life-os/issues"
-  },
-  "homepage": "https://github.com/life-os/life-os#readme",
+  "author": "Rithsila",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

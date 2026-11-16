@@ -30,7 +30,7 @@ export const exportFinanceReportToPDF = ({
   // Title
   doc.setFontSize(22)
   doc.setTextColor(16, 185, 129) // Emerald-500
-  doc.text('Life OS - Financial Report', margin, 25)
+  doc.text('SilaOS - Financial Report', margin, 25)
 
   // Date Range
   doc.setFontSize(10)
@@ -127,5 +127,5 @@ export const exportFinanceReportToPDF = ({
   }
 
   // Save the PDF
-  doc.save(`LifeOS_Finance_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+  doc.save(`SilaOS_Finance_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
 }

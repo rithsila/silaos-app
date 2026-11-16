@@ -114,7 +114,7 @@ export function ActivityTimeline() {
           <div className="text-center py-8 text-muted-foreground text-sm">
             <div className="text-3xl mb-2">📋</div>
             <p className="font-medium">No activity yet</p>
-            <p className="text-xs mt-1">Start using Life OS to see your activity here</p>
+            <p className="text-xs mt-1">Start using SilaOS to see your activity here</p>
           </div>
         ) : (
           <div className="relative">

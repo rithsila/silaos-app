@@ -130,7 +130,7 @@ function formatFieldValue(key: string, value: unknown): string {
 }
 
 export function formatToolLabel(toolName?: string, rawInput?: unknown): string {
-  if (!toolName) return 'Life OS'
+  if (!toolName) return 'SilaOS'
   if (toolName === 'ExecuteExtraTool') {
     const parsed = tryParseJson(rawInput)
     if (parsed && typeof parsed === 'object' && 'tool_name' in parsed) {

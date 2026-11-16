@@ -774,7 +774,7 @@ export function SetupWizard() {
       <aside className="hidden md:flex flex-col w-[320px] shrink-0 border-r border-border bg-muted/30 p-8">
         <div className="flex items-center gap-2.5">
           <img src="/logo.svg" alt="" aria-hidden className="w-8 h-8 rounded-lg" />
-          <span className="font-semibold">Life OS</span>
+          <span className="font-semibold">SilaOS</span>
         </div>
 
         <div className="mt-10">
@@ -832,7 +832,7 @@ export function SetupWizard() {
         <div className="md:hidden flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="" aria-hidden className="w-7 h-7 rounded-md" />
-            <span className="font-semibold text-sm">Life OS</span>
+            <span className="font-semibold text-sm">SilaOS</span>
           </div>
           <span className="text-xs text-muted-foreground">{step + 1}/{TOTAL_STEPS}</span>
         </div>

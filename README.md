@@ -1,20 +1,19 @@
 <div align="center">
 
-<img src="public/logo.svg" alt="Life OS" width="112" height="112" />
+<img src="public/logo.svg" alt="SilaOS" width="112" height="112" />
 
-# Life OS
+# SilaOS
 
 **Your Personal Life Operating System**
 
-[![CI](https://github.com/lunanoir21/Life-os-project/actions/workflows/ci.yml/badge.svg)](https://github.com/lunanoir21/Life-os-project/actions/workflows/ci.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![Rust](https://img.shields.io/badge/Rust-axum-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-A beautiful, local-first personal life management system — tasks, habits, journal, finance, goals, and more in one place.
+A local-first personal life management system — tasks, habits, journal, finance, goals, AI assistant, and more in one place.
 
-[Live Demo](https://lunanoir21.github.io/Life-os-project/) · [Documentation](https://lunanoir21.github.io/Life-os-project/documentation.html) · [Quick Start](#getting-started) · [Docker](#docker)
+[Quick Start](#getting-started) · [Docker](#docker)
 
 </div>
 
@@ -219,12 +218,12 @@ life-os/
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Originally based on [Life OS](https://github.com/lunanoir21/Life-os-project) (`Copyright (c) 2025 Life OS Contributors`).
 
 ---
 
 <div align="center">
 
-[Back to top](#life-os)
+[Back to top](#silaos)
 
 </div>

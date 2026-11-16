@@ -85,7 +85,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
         collapsed && 'justify-center px-2'
       )}>
         {collapsed ? (
-          <img src="/logo.svg" alt="Life OS" className="w-7 h-7 rounded-md" />
+          <img src="/logo.svg" alt="SilaOS" className="w-7 h-7 rounded-md" />
         ) : (
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="" aria-hidden className="w-6 h-6 rounded-md shrink-0" />

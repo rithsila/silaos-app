@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Life OS - Personal Life Operating System",
+  title: "SilaOS - Personal Life Operating System",
   description: "Your personal life operating system. Manage tasks, notes, habits, finances, health, goals, and more — all in one place.",
   icons: {
     icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     apple: "/logo.svg",
   },
   openGraph: {
-    title: "Life OS",
+    title: "SilaOS",
     description: "Your personal life operating system — calm, private, all in one place.",
     images: ["/logo.svg"],
   },
