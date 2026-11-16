@@ -18,14 +18,18 @@ export const metadata: Metadata = {
   title: "SilaOS - Personal Life Operating System",
   description: "Your personal life operating system. Manage tasks, notes, habits, finances, health, goals, and more — all in one place.",
   icons: {
-    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
-    shortcut: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48", type: "image/x-icon" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     title: "SilaOS",
     description: "Your personal life operating system — calm, private, all in one place.",
-    images: ["/logo.svg"],
+    images: ["/icon.png"],
   },
 };
 

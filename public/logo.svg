@@ -1,90 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="45%" r="60%">
-      <stop offset="0%" stop-color="#12141c" />
-      <stop offset="60%" stop-color="#050608" />
-      <stop offset="100%" stop-color="#020203" />
-    </radialGradient>
-
-    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4.5" result="blur1" />
-      <feGaussianBlur stdDeviation="1.8" result="blur2" />
-      <feMerge>
-        <feMergeNode in="blur1" />
-        <feMergeNode in="blur2" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
+    <linearGradient id="emeraldGrad" x1="15%" y1="90%" x2="85%" y2="10%">
+      <stop offset="0%" stop-color="#08bf8b" />
+      <stop offset="50%" stop-color="#1ed39b" />
+      <stop offset="100%" stop-color="#38e3ad" />
+    </linearGradient>
   </defs>
-
-  <rect width="200" height="200" rx="44" fill="url(#bgGrad)" />
-
-  <g transform="translate(0, 4)">
-    
-    <g fill="none" stroke="#00e87a" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" filter="url(#neonGlow)">
-      <path d="M 100,130 C 72,130 54,110 54,82 C 54,76 56,70 59,65" stroke-width="5" />
-      <path d="M 100,130 C 128,130 146,110 146,82 C 146,76 144,70 141,65" stroke-width="5" />
-      <path d="M 100,122 C 80,122 66,106 66,86" stroke-width="4" />
-      <path d="M 100,122 C 120,122 134,106 134,86" stroke-width="4" />
-      <path d="M 100,130 L 100,95 M 95,122 L 95,98 M 105,122 L 105,98" stroke-width="4.5" />
-      <path d="M 95,112 C 82,112 76,104 76,96 M 105,112 C 118,112 124,104 124,96" stroke-width="3.5" />
-      <path d="M 100,72 C 88,62 88,44 100,32 C 112,44 112,62 100,72 Z" stroke-width="4.5" />
-      <path d="M 92,78 C 84,64 72,54 64,48 C 60,62 72,76 92,78 Z" stroke-width="4.5" />
-      <path d="M 108,78 C 116,64 128,54 136,48 C 140,62 128,76 108,78 Z" stroke-width="4.5" />
-      <path d="M 93,90 C 81,84 63,78 54,82 C 58,95 78,101 93,90 Z" stroke-width="4.5" />
-      <path d="M 107,90 C 119,84 137,78 146,82 C 142,95 122,101 107,90 Z" stroke-width="4.5" />
-      <path d="M 100,72 L 100,46 M 100,58 L 93,50 M 100,58 L 107,50" stroke-width="3" />
-      <path d="M 90,76 L 73,58 M 110,76 L 127,58 M 88,89 L 68,83 M 112,89 L 132,83" stroke-width="3" />
-      <path d="M 66,86 C 66,78 60,72 53,72 M 134,86 C 134,78 140,72 147,72" stroke-width="3" />
-    </g>
-
-    <g fill="none" stroke="#00e87a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2">
-      <path d="M 100,130 C 72,130 54,110 54,82 C 54,76 56,70 59,65" />
-      <path d="M 100,130 C 128,130 146,110 146,82 C 146,76 144,70 141,65" />
-      <path d="M 100,122 C 80,122 66,106 66,86" stroke-width="1.8" />
-      <path d="M 100,122 C 120,122 134,106 134,86" stroke-width="1.8" />
-      <path d="M 100,130 L 100,95 M 95,122 L 95,98 M 105,122 L 105,98" stroke-width="2"/>
-      <path d="M 95,112 C 82,112 76,104 76,96 M 105,112 C 118,112 124,104 124,96" stroke-width="1.5" />
-      <path d="M 100,72 C 88,62 88,44 100,32 C 112,44 112,62 100,72 Z" />
-      <path d="M 92,78 C 84,64 72,54 64,48 C 60,62 72,76 92,78 Z" />
-      <path d="M 108,78 C 116,64 128,54 136,48 C 140,62 128,76 108,78 Z" />
-      <path d="M 93,90 C 81,84 63,78 54,82 C 58,95 78,101 93,90 Z" />
-      <path d="M 107,90 C 119,84 137,78 146,82 C 142,95 122,101 107,90 Z" />
-      <path d="M 100,72 L 100,46 M 100,58 L 93,50 M 100,58 L 107,50" stroke-width="1.5" />
-      <path d="M 90,76 L 73,58 M 110,76 L 127,58 M 88,89 L 68,83 M 112,89 L 132,83" stroke-width="1.5" />
-      <path d="M 66,86 C 66,78 60,72 53,72 M 134,86 C 134,78 140,72 147,72" stroke-width="1.5" />
-    </g>
-
-    <g fill="none" stroke="#d6ffeb" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.8" opacity="0.9">
-      <path d="M 100,130 L 100,95 M 95,122 L 95,98 M 105,122 L 105,98" />
-      <path d="M 100,72 C 88,62 88,44 100,32 C 112,44 112,62 100,72 Z" />
-      <path d="M 92,78 C 84,64 72,54 64,48 C 60,62 72,76 92,78 Z" />
-      <path d="M 108,78 C 116,64 128,54 136,48 C 140,62 128,76 108,78 Z" />
-      <path d="M 100,72 L 100,46 M 90,76 L 73,58 M 110,76 L 127,58" />
-      <path d="M 93,90 C 81,84 63,78 54,82 M 107,90 C 119,84 137,78 146,82" />
-    </g>
-
-    <g fill="#00e87a" filter="url(#neonGlow)">
-      <circle cx="100" cy="46" r="2.2" fill="#ffffff" stroke="#00e87a" stroke-width="1" />
-      <circle cx="73" cy="58" r="2" fill="#ffffff" stroke="#00e87a" stroke-width="1" />
-      <circle cx="127" cy="58" r="2" fill="#ffffff" stroke="#00e87a" stroke-width="1" />
-      <circle cx="68" cy="83" r="1.8" fill="#ffffff" stroke="#00e87a" stroke-width="1" />
-      <circle cx="132" cy="83" r="1.8" fill="#ffffff" stroke="#00e87a" stroke-width="1" />
-      <circle cx="93" cy="50" r="1.2" fill="#00e87a" />
-      <circle cx="107" cy="50" r="1.2" fill="#00e87a" />
-      <circle cx="53" cy="72" r="2" />
-      <circle cx="147" cy="72" r="2" />
-      <circle cx="76" cy="96" r="1.5" />
-      <circle cx="124" cy="96" r="1.5" />
-      <circle cx="59" cy="65" r="1.5" />
-      <circle cx="141" cy="65" r="1.5" />
-    </g>
-  </g>
-
-  <g transform="translate(100, 172)">
-    <text font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15.5" text-anchor="middle" letter-spacing="0.4">
-      <tspan font-weight="300" fill="#ffffff">Life</tspan>
-      <tspan font-weight="700" fill="#ffffff"> OS</tspan>
-    </text>
+  <g fill="url(#emeraldGrad)">
+    <path d="M 179.32 12.00 C 175.42 29.52, 170.33 48.36, 156.13 60.51 C 153.69 62.55, 151.07 64.34, 148.29 65.88 C 117.21 79.85, 87.03 95.84, 56.45 110.35 C 53.47 111.63, 50.23 112.23, 46.99 112.07 C 39.04 111.97, 32.20 106.97, 27.25 101.06 C 22.49 94.90, 20.05 86.94, 20.81 79.15 C 21.29 74.43, 22.88 69.87, 25.23 65.76 C 26.31 63.97, 27.56 62.28, 28.93 60.68 C 41.78 48.34, 53.93 35.21, 67.30 23.44 C 70.27 21.38, 73.55 19.75, 76.98 18.64 C 78.96 18.06, 80.94 17.56, 82.98 17.25 C 112.08 15.54, 141.59 19.32, 170.44 14.65 C 173.44 14.00, 176.58 12.95, 179.32 12.00 Z" />
+    <path d="M 122.67 187.84 C 108.76 188.16, 94.83 187.89, 80.91 187.96 C 64.52 187.93, 48.14 188.00, 31.75 187.89 C 30.46 187.70, 29.26 187.15, 28.29 186.27 C 27.40 185.44, 26.72 184.38, 26.38 183.21 C 26.01 180.39, 26.28 177.51, 26.18 174.68 C 24.59 158.20, 33.53 140.87, 49.30 134.77 C 51.20 133.85, 53.08 132.88, 55.02 131.98 C 58.39 130.35, 61.77 128.74, 65.17 127.14 C 89.32 115.45, 113.28 103.54, 136.75 90.79 C 140.04 89.04, 143.89 88.36, 147.60 88.98 C 149.75 89.36, 151.78 90.30, 153.59 91.54 C 164.47 102.40, 180.26 112.67, 178.90 130.14 C 178.82 132.56, 178.43 134.96, 177.76 137.29 C 175.40 147.19, 167.04 153.51, 160.24 160.37 C 148.38 170.25, 139.41 186.31, 122.67 187.84 Z" />
   </g>
 </svg>
