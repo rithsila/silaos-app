@@ -191,3 +191,25 @@ func TestErrorShapeMatchesRust(t *testing.T) {
 		t.Fatalf("expected non-empty error field, got %v", errBody)
 	}
 }
+
+func TestCancelRoute(t *testing.T) {
+	h := newTestRouter(t, "", &mockLLM{})
+
+	recCreate := httptest.NewRecorder()
+	h.ServeHTTP(recCreate, httptest.NewRequest(http.MethodPost, "/api/chat/sessions", bytes.NewBufferString(`{}`)))
+	var created chat.SessionSummary
+	_ = json.Unmarshal(recCreate.Body.Bytes(), &created)
+
+	recCancel := httptest.NewRecorder()
+	h.ServeHTTP(recCancel, httptest.NewRequest(http.MethodPost, "/api/chat/sessions/"+created.ID+"/cancel", nil))
+	if recCancel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on cancel, got %d: %s", recCancel.Code, recCancel.Body.String())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(recCancel.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal cancel: %v", err)
+	}
+	if payload["ok"] != true || payload["cancelled"] != false {
+		t.Fatalf("unexpected cancel payload: %+v", payload)
+	}
+}

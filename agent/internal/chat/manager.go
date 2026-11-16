@@ -63,10 +63,12 @@ type ChatMessage struct {
 	ToolCalls []ToolTrace `json:"toolCalls,omitempty"`
 }
 
-// SessionDetail includes thread metadata and persisted messages.
+// SessionDetail includes thread metadata, persisted messages, and live turn status.
 type SessionDetail struct {
 	SessionSummary
-	Messages []ChatMessage `json:"messages"`
+	Messages         []ChatMessage     `json:"messages"`
+	Busy             bool              `json:"busy"`
+	PendingApprovals []ApprovalRequest `json:"pendingApprovals,omitempty"`
 }
 
 // ApprovalRequest is emitted over SSE when a mutating tool awaits confirmation.
@@ -86,9 +88,15 @@ type StreamEvent struct {
 	Error    string           `json:"error,omitempty"`
 }
 
+type pendingApproval struct {
+	req ApprovalRequest
+	ch  chan bool
+}
+
 type sessionRuntime struct {
 	busy    bool
-	pending map[string]chan bool
+	cancel  context.CancelFunc
+	pending map[string]*pendingApproval
 }
 
 // Manager coordinates Norma sessions, transcripts, memory, and tool approvals.
@@ -215,6 +223,22 @@ func (m *Manager) CreateSession(_ context.Context, title string) (SessionSummary
 func (m *Manager) GetSession(_ context.Context, id string) (*SessionDetail, error) {
 	m.mu.Lock()
 	s, ok := m.sessions[id]
+	var busy bool
+	var pendingApprovals []ApprovalRequest
+	if ok {
+		if rt := m.runtimes[id]; rt != nil {
+			busy = rt.busy
+			if len(rt.pending) > 0 {
+				pendingApprovals = make([]ApprovalRequest, 0, len(rt.pending))
+				for _, p := range rt.pending {
+					pendingApprovals = append(pendingApprovals, p.req)
+				}
+				sort.Slice(pendingApprovals, func(i, j int) bool {
+					return pendingApprovals[i].ToolUseID < pendingApprovals[j].ToolUseID
+				})
+			}
+		}
+	}
 	m.mu.Unlock()
 	if !ok {
 		return nil, ErrSessionNotFound
@@ -230,8 +254,10 @@ func (m *Manager) GetSession(_ context.Context, id string) (*SessionDetail, erro
 	}
 
 	return &SessionDetail{
-		SessionSummary: s,
-		Messages:       msgs,
+		SessionSummary:   s,
+		Messages:         msgs,
+		Busy:             busy,
+		PendingApprovals: pendingApprovals,
 	}, nil
 }
 
@@ -285,6 +311,27 @@ func (m *Manager) ListMemories() ([]memory.Memory, error) {
 	return items, nil
 }
 
+// CancelSession cancels an active turn in the given session, if any.
+func (m *Manager) CancelSession(id string) (bool, error) {
+	m.mu.Lock()
+	if _, ok := m.sessions[id]; !ok {
+		m.mu.Unlock()
+		return false, ErrSessionNotFound
+	}
+	rt := m.runtimes[id]
+	var cancel context.CancelFunc
+	var cancelled bool
+	if rt != nil && rt.busy && rt.cancel != nil {
+		cancel = rt.cancel
+		cancelled = true
+	}
+	m.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	return cancelled, nil
+}
+
 func (m *Manager) ResolveApproval(sessionID, toolUseID string, allow bool) error {
 	m.mu.Lock()
 	rt := m.runtimes[sessionID]
@@ -292,7 +339,7 @@ func (m *Manager) ResolveApproval(sessionID, toolUseID string, allow bool) error
 		m.mu.Unlock()
 		return ErrApprovalNotFound
 	}
-	ch, ok := rt.pending[toolUseID]
+	entry, ok := rt.pending[toolUseID]
 	if ok {
 		delete(rt.pending, toolUseID)
 	}
@@ -302,7 +349,7 @@ func (m *Manager) ResolveApproval(sessionID, toolUseID string, allow bool) error
 		return ErrApprovalNotFound
 	}
 	select {
-	case ch <- allow:
+	case entry.ch <- allow:
 	default:
 	}
 	return nil
@@ -329,17 +376,21 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 	}
 	rt := m.runtimes[id]
 	if rt == nil {
-		rt = &sessionRuntime{pending: make(map[string]chan bool)}
+		rt = &sessionRuntime{pending: make(map[string]*pendingApproval)}
 		m.runtimes[id] = rt
 	}
 	if rt.busy {
 		m.mu.Unlock()
 		return ErrSessionBusy
 	}
+	runCtx, cancel := context.WithCancel(ctx)
 	rt.busy = true
+	rt.cancel = cancel
 	if rewindFromIndex != nil {
 		if err := m.rewindTranscriptFromVisibleIndex(m.transcript.MainPath(id), *rewindFromIndex); err != nil {
+			cancel()
 			rt.busy = false
+			rt.cancel = nil
 			m.mu.Unlock()
 			return err
 		}
@@ -356,10 +407,12 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 	m.mu.Unlock()
 
 	defer func() {
+		cancel()
 		m.mu.Lock()
 		rt.busy = false
-		for k, ch := range rt.pending {
-			close(ch)
+		rt.cancel = nil
+		for k, p := range rt.pending {
+			close(p.ch)
 			delete(rt.pending, k)
 		}
 		if s, exists := m.sessions[id]; exists {
@@ -379,8 +432,14 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 	requestApproval := func(actx context.Context, toolName string, input json.RawMessage) bool {
 		callID := "apr_" + newID()
 		ch := make(chan bool, 1)
+		inputCopy := append(json.RawMessage(nil), input...)
+		req := ApprovalRequest{
+			ToolUseID: callID,
+			ToolName:  toolName,
+			Input:     inputCopy,
+		}
 		m.mu.Lock()
-		rt.pending[callID] = ch
+		rt.pending[callID] = &pendingApproval{req: req, ch: ch}
 		m.mu.Unlock()
 
 		emit(StreamEvent{
@@ -388,7 +447,7 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 			Approval: &ApprovalRequest{
 				ToolUseID: callID,
 				ToolName:  toolName,
-				Input:     append(json.RawMessage(nil), input...),
+				Input:     append(json.RawMessage(nil), inputCopy...),
 			},
 		})
 
@@ -482,7 +541,7 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 		}
 	}
 
-	for ev, err := range sess.Prompt(ctx, text) {
+	for ev, err := range sess.Prompt(runCtx, text) {
 		if err != nil {
 			emit(StreamEvent{Type: "error", Error: err.Error()})
 			return err

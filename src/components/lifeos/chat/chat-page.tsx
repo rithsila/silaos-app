@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, PanelLeft, Send, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,15 +9,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useTranslation } from '@/lib/i18n'
 import { useChatStore } from '@/stores/chat-store'
+import { LIFEOS_QUERY_KEYS, useChatRuntimeStore } from '@/stores/chat-runtime'
 import {
-  approveToolCall,
   createChatSession,
   deleteChatSession,
   fetchChatConfig,
   fetchChatSession,
   fetchChatSessions,
   renameChatSession,
-  streamChatMessage,
   type ChatMessage,
   type ChatToolTrace,
 } from '@/lib/api/chat'
@@ -25,18 +24,8 @@ import { ChatThreadList } from './chat-thread-list'
 import { ChatMessageList } from './chat-message-list'
 import type { PendingApproval } from './tool-approval-card'
 
-const LIFEOS_QUERY_KEYS = [
-  ['tasks'],
-  ['events'],
-  ['habits'],
-  ['notes'],
-  ['projects'],
-  ['goals'],
-  ['finance'],
-  ['dashboard'],
-  ['journal'],
-  ['courses'],
-]
+const EMPTY_TOOLS: ChatToolTrace[] = []
+const EMPTY_APPROVALS: PendingApproval[] = []
 
 export function ChatPage() {
   const { t } = useTranslation()
@@ -44,24 +33,26 @@ export function ChatPage() {
   const queryClient = useQueryClient()
   const { activeSessionId, setActiveSessionId } = useChatStore()
 
+  const runtime = useChatRuntimeStore((s) =>
+    activeSessionId ? s.runtimes[activeSessionId] : undefined,
+  )
+  const serverApprovalMap = useChatRuntimeStore((s) =>
+    activeSessionId ? s.serverApprovals[activeSessionId] : undefined,
+  )
+  const startStream = useChatRuntimeStore((s) => s.startStream)
+  const stopStream = useChatRuntimeStore((s) => s.stopStream)
+  const resolveApproval = useChatRuntimeStore((s) => s.resolveApproval)
+  const clearSessionError = useChatRuntimeStore((s) => s.clearSessionError)
+  const clearSessionRuntime = useChatRuntimeStore((s) => s.clearSessionRuntime)
+  const clearServerApprovals = useChatRuntimeStore((s) => s.clearServerApprovals)
+
   const [input, setInput] = useState('')
   const [threadsOpen, setThreadsOpen] = useState(true)
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false)
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [streamingText, setStreamingText] = useState('')
-  const [streamingThinking, setStreamingThinking] = useState('')
-  const [streamingTools, setStreamingTools] = useState<ChatToolTrace[]>([])
-  const [approvals, setApprovals] = useState<PendingApproval[]>([])
-  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[] | null>(null)
-  const [errorText, setErrorText] = useState<string | null>(null)
+  const [localErrorText, setLocalErrorText] = useState<string | null>(null)
 
-  const abortRef = useRef<AbortController | null>(null)
-
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort()
-    }
-  }, [])
+  const isLocalStreaming = runtime?.isStreaming ?? false
+  const prevServerBusyRef = useRef<{ id: string | null; busy: boolean }>({ id: null, busy: false })
 
   const { data: config } = useQuery({
     queryKey: ['chat', 'config'],
@@ -78,7 +69,28 @@ export function ChatPage() {
     queryKey: ['chat', 'session', activeSessionId],
     queryFn: () => fetchChatSession(activeSessionId!),
     enabled: !!activeSessionId,
+    refetchInterval: (query) =>
+      query.state.data?.busy && !isLocalStreaming ? 1500 : false,
   })
+
+  useEffect(() => {
+    const busyNow = Boolean(sessionDetail?.busy)
+    const prev = prevServerBusyRef.current
+    if (
+      activeSessionId &&
+      prev.id === activeSessionId &&
+      prev.busy &&
+      !busyNow &&
+      !isLocalStreaming
+    ) {
+      clearServerApprovals(activeSessionId)
+      void queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+      void Promise.all(
+        LIFEOS_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
+    }
+    prevServerBusyRef.current = { id: activeSessionId, busy: busyNow }
+  }, [activeSessionId, clearServerApprovals, isLocalStreaming, queryClient, sessionDetail?.busy])
 
   useEffect(() => {
     if (activeSessionId && sessions.length > 0 && !sessions.some((s) => s.id === activeSessionId)) {
@@ -86,45 +98,55 @@ export function ChatPage() {
     }
   }, [activeSessionId, sessions, setActiveSessionId])
 
-  const resetStreamState = useCallback(() => {
-    setStreamingText('')
-    setStreamingThinking('')
-    setStreamingTools([])
-    setApprovals([])
-    setOptimisticMessages(null)
-  }, [])
+  const isBusy = isLocalStreaming || Boolean(sessionDetail?.busy)
+  const streamingText = runtime?.streamingText ?? ''
+  const streamingThinking = runtime?.streamingThinking ?? ''
+  const streamingTools = runtime?.streamingTools ?? EMPTY_TOOLS
+  const errorText = runtime?.errorText ?? localErrorText
+
+  const approvals = useMemo<PendingApproval[]>(() => {
+    if (runtime && (runtime.isStreaming || runtime.approvals.length > 0)) {
+      return runtime.approvals
+    }
+    const serverPending = sessionDetail?.pendingApprovals
+    if (!serverPending || serverPending.length === 0) {
+      return EMPTY_APPROVALS
+    }
+    return serverPending.map((apr) => ({
+      ...apr,
+      status: serverApprovalMap?.[apr.toolUseId]?.status ?? 'pending',
+      submitting: serverApprovalMap?.[apr.toolUseId]?.submitting ?? false,
+    }))
+  }, [runtime, serverApprovalMap, sessionDetail?.pendingApprovals])
 
   const handleSelectSession = useCallback(
     (id: string) => {
-      if (isStreaming) return
-      setErrorText(null)
-      resetStreamState()
+      setLocalErrorText(null)
+      clearSessionError(id)
       setActiveSessionId(id)
       if (isMobile) setMobileThreadsOpen(false)
     },
-    [isMobile, isStreaming, resetStreamState, setActiveSessionId],
+    [clearSessionError, isMobile, setActiveSessionId],
   )
 
   const handleNewChat = useCallback(async () => {
-    if (isStreaming) return
-    setErrorText(null)
-    resetStreamState()
+    setLocalErrorText(null)
     const created = await createChatSession()
     await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
     setActiveSessionId(created.id)
     if (isMobile) setMobileThreadsOpen(false)
-  }, [isMobile, isStreaming, queryClient, resetStreamState, setActiveSessionId])
+  }, [isMobile, queryClient, setActiveSessionId])
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
       await deleteChatSession(id)
+      clearSessionRuntime(id)
       if (activeSessionId === id) {
         setActiveSessionId(null)
-        resetStreamState()
       }
       await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
     },
-    [activeSessionId, queryClient, resetStreamState, setActiveSessionId],
+    [activeSessionId, clearSessionRuntime, queryClient, setActiveSessionId],
   )
 
   const handleRenameSession = useCallback(
@@ -144,15 +166,20 @@ export function ChatPage() {
       opts?: { rewindFromIndex?: number; preserveInput?: boolean },
     ) => {
       const trimmed = promptText.trim()
-      if (!trimmed || isStreaming) return
+      if (!trimmed || isBusy) return
 
-      setErrorText(null)
+      setLocalErrorText(null)
       let targetId = activeSessionId
       if (!targetId) {
-        const created = await createChatSession()
-        targetId = created.id
-        setActiveSessionId(targetId)
-        await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+        try {
+          const created = await createChatSession()
+          targetId = created.id
+          setActiveSessionId(targetId)
+          await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
+        } catch (err) {
+          setLocalErrorText((err as Error)?.message || 'Failed to create chat session')
+          return
+        }
       }
 
       const baseMessages =
@@ -161,91 +188,26 @@ export function ChatPage() {
           : []
       const rewindIdx = opts?.rewindFromIndex
       const prefix = typeof rewindIdx === 'number' ? baseMessages.slice(0, rewindIdx) : baseMessages
-      setOptimisticMessages([...prefix, { role: 'user', text: trimmed }])
+      const optimisticMessages: ChatMessage[] = [...prefix, { role: 'user', text: trimmed }]
       if (!opts?.preserveInput) {
         setInput('')
       }
-      setIsStreaming(true)
-      setStreamingText('')
-      setStreamingThinking('')
-      setStreamingTools([])
-      setApprovals([])
 
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      let hadApprovedOrMutated = false
-
-      try {
-        await streamChatMessage(
-          targetId,
-          trimmed,
-          (ev) => {
-            switch (ev.type) {
-              case 'text':
-                if (ev.text) setStreamingText((prev) => prev + ev.text)
-                break
-              case 'thinking':
-                if (ev.text) setStreamingThinking((prev) => prev + ev.text)
-                break
-              case 'tool_use':
-                if (ev.tool) {
-                  setStreamingTools((prev) => [...prev, ev.tool!])
-                }
-                break
-              case 'tool_result':
-                if (ev.tool) {
-                  if (!ev.tool.isError) hadApprovedOrMutated = true
-                  setStreamingTools((prev) =>
-                    prev.map((item) =>
-                      item.id === ev.tool!.id
-                        ? { ...item, result: ev.tool!.result, isError: ev.tool!.isError }
-                        : item,
-                    ),
-                  )
-                }
-                break
-              case 'approval_required':
-                if (ev.approval) {
-                  setApprovals((prev) => [
-                    ...prev,
-                    { ...ev.approval!, status: 'pending' },
-                  ])
-                }
-                break
-              case 'error':
-                if (ev.error) setErrorText(ev.error)
-                break
-              case 'done':
-                break
-            }
-          },
-          ctrl.signal,
-          rewindIdx,
-        )
-      } catch (err) {
-        if ((err as Error)?.name !== 'AbortError') {
-          setErrorText((err as Error)?.message || 'Chat request failed')
-        }
-      } finally {
-        abortRef.current = null
-        setIsStreaming(false)
-        await queryClient.invalidateQueries({ queryKey: ['chat', 'sessions'] })
-        await queryClient.invalidateQueries({ queryKey: ['chat', 'session', targetId] })
-        if (hadApprovedOrMutated) {
-          await Promise.all(
-            LIFEOS_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-          )
-        }
-        resetStreamState()
-      }
+      await startStream({
+        sessionId: targetId,
+        prompt: trimmed,
+        rewindFromIndex: rewindIdx,
+        optimisticMessages,
+        queryClient,
+      })
     },
     [
       activeSessionId,
-      isStreaming,
+      isBusy,
       queryClient,
-      resetStreamState,
       sessionDetail,
       setActiveSessionId,
+      startStream,
     ],
   )
 
@@ -272,35 +234,14 @@ export function ChatPage() {
   const handleResolveApproval = useCallback(
     async (toolUseId: string, allow: boolean) => {
       if (!activeSessionId) return
-      setApprovals((prev) =>
-        prev.map((a) => (a.toolUseId === toolUseId ? { ...a, submitting: true } : a)),
-      )
-      try {
-        await approveToolCall(activeSessionId, toolUseId, allow)
-        setApprovals((prev) =>
-          prev.map((a) =>
-            a.toolUseId === toolUseId
-              ? { ...a, status: allow ? 'approved' : 'denied', submitting: false }
-              : a,
-          ),
-        )
-        if (allow) {
-          await Promise.all(
-            LIFEOS_QUERY_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-          )
-        }
-      } catch (err) {
-        setErrorText((err as Error)?.message || 'Failed to submit approval')
-        setApprovals((prev) =>
-          prev.map((a) => (a.toolUseId === toolUseId ? { ...a, submitting: false } : a)),
-        )
-      }
+      await resolveApproval(activeSessionId, toolUseId, allow, queryClient)
     },
-    [activeSessionId, queryClient],
+    [activeSessionId, queryClient, resolveApproval],
   )
 
   const displayedMessages =
-    optimisticMessages ?? (Array.isArray(sessionDetail?.messages) ? sessionDetail.messages : [])
+    runtime?.optimisticMessages ??
+    (Array.isArray(sessionDetail?.messages) ? sessionDetail.messages : [])
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
@@ -377,7 +318,7 @@ export function ChatPage() {
           streamingThinking={streamingThinking}
           streamingTools={streamingTools}
           approvals={approvals}
-          isStreaming={isStreaming}
+          isStreaming={isBusy}
           onResolveApproval={handleResolveApproval}
           onStarterPrompt={(prompt) => void sendPrompt(prompt)}
           onEditPrompt={handleEditPrompt}
@@ -405,13 +346,13 @@ export function ChatPage() {
               rows={2}
               className="min-h-[44px] max-h-40 resize-none text-sm"
             />
-            {isStreaming ? (
+            {isBusy ? (
               <Button
                 type="button"
                 variant="destructive"
                 size="icon"
                 className="h-10 w-10 shrink-0"
-                onClick={() => abortRef.current?.abort()}
+                onClick={() => activeSessionId && void stopStream(activeSessionId, queryClient)}
                 aria-label={t('chat.stop')}
               >
                 <Square className="h-4 w-4" />

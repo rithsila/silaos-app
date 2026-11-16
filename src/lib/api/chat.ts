@@ -23,6 +23,8 @@ export interface ChatMessage {
 
 export interface ChatSessionDetail extends ChatSessionSummary {
   messages: ChatMessage[]
+  busy?: boolean
+  pendingApprovals?: ChatApprovalRequest[]
 }
 
 export interface ChatConfigStatus {
@@ -91,6 +93,10 @@ export async function approveToolCall(
     toolUseId,
     allow,
   })
+}
+
+export async function cancelChatSession(sessionId: string): Promise<void> {
+  await apiPost(`/api/chat/sessions/${encodeURIComponent(sessionId)}/cancel`, {})
 }
 
 export async function streamChatMessage(

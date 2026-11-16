@@ -411,3 +411,88 @@ func TestRenameAndRewindSession(t *testing.T) {
 		t.Fatalf("expected ErrInvalidMessageIndex, got %v", err)
 	}
 }
+
+func TestGetSessionIncludesBusyAndPendingApprovalsAndCancelUnblocks(t *testing.T) {
+	dir := t.TempDir()
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer backend.Close()
+
+	prov := &scriptedProvider{
+		fn: func(_ context.Context, _ llm.CompletionRequest, call int) []llm.StreamEvent {
+			if call == 1 {
+				return []llm.StreamEvent{
+					{Type: llm.SEMessageStart},
+					{Type: llm.SEToolUseStart, ToolID: "call-create", ToolName: "lifeos_tasks_create"},
+					{Type: llm.SEToolInputJSON, Text: `{"body":{"title":"Task 1"}}`},
+					{Type: llm.SEMessageDelta, StopReason: "tool_use"},
+					{Type: llm.SEMessageStop},
+				}
+			}
+			return []llm.StreamEvent{
+				{Type: llm.SEMessageStart},
+				{Type: llm.SETextDelta, Text: "Done"},
+				{Type: llm.SEMessageDelta, StopReason: "end_turn"},
+				{Type: llm.SEMessageStop},
+			}
+		},
+	}
+
+	mgr := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient(backend.URL, ""), prov)
+	sess, err := mgr.CreateSession(context.Background(), "Pending approval state")
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	approvalCh := make(chan ApprovalRequest, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- mgr.SendMessage(context.Background(), sess.ID, "delete task t-1", func(ev StreamEvent) {
+			if ev.Type == "approval_required" && ev.Approval != nil {
+				approvalCh <- *ev.Approval
+			}
+		})
+	}()
+
+	var req ApprovalRequest
+	select {
+	case req = <-approvalCh:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for approval_required")
+	}
+
+	detail, err := mgr.GetSession(context.Background(), sess.ID)
+	if err != nil {
+		t.Fatalf("GetSession while pending: %v", err)
+	}
+	if !detail.Busy {
+		t.Fatalf("expected GetSession.Busy = true while awaiting approval")
+	}
+	if len(detail.PendingApprovals) != 1 || detail.PendingApprovals[0].ToolUseID != req.ToolUseID {
+		t.Fatalf("expected pending approval %s in GetSession, got %+v", req.ToolUseID, detail.PendingApprovals)
+	}
+
+	cancelled, err := mgr.CancelSession(sess.ID)
+	if err != nil {
+		t.Fatalf("CancelSession: %v", err)
+	}
+	if !cancelled {
+		t.Fatalf("expected CancelSession to return cancelled=true")
+	}
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for SendMessage to exit after CancelSession")
+	}
+
+	after, err := mgr.GetSession(context.Background(), sess.ID)
+	if err != nil {
+		t.Fatalf("GetSession after cancel: %v", err)
+	}
+	if after.Busy || len(after.PendingApprovals) != 0 {
+		t.Fatalf("expected clean state after cancel, got busy=%v pending=%d", after.Busy, len(after.PendingApprovals))
+	}
+}

@@ -5,6 +5,7 @@ import { renderWithProviders, createTestQueryClient, userEvent } from '../utils/
 import { server } from '../mocks/server'
 import { ChatPage } from '@/components/lifeos/chat/chat-page'
 import { useChatStore } from '@/stores/chat-store'
+import { resetAllChatRuntimes } from '@/stores/chat-runtime'
 
 function sseResponse(frames: string[]) {
   const encoder = new TextEncoder()
@@ -43,6 +44,7 @@ describe('ChatPage', () => {
       disconnect() {}
     }
     useChatStore.setState({ activeSessionId: null })
+    resetAllChatRuntimes()
     server.use(
       http.get('/api/chat/config', () =>
         HttpResponse.json({ llmConfigured: true, provider: 'openai', model: 'gpt-4o-mini' }),
@@ -183,11 +185,13 @@ describe('ChatPage', () => {
     expect(invalidateSpy).toHaveBeenCalled()
   })
 
-  it('aborts active stream when component unmounts', async () => {
+  it('preserves stream and pending approval across page switch, and cancels on Stop', async () => {
     let observedSignal: AbortSignal | undefined
+    let cancelCalled = false
+    let sessionBusy = false
     const session = {
       id: 'sess-300',
-      title: 'Abort check',
+      title: 'Page switch check',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -195,14 +199,21 @@ describe('ChatPage', () => {
     server.use(
       http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
       http.get('/api/chat/sessions/sess-300', () =>
-        HttpResponse.json({ ...session, messages: [] }),
+        HttpResponse.json({ ...session, messages: [], busy: sessionBusy }),
       ),
       http.post('/api/chat/sessions/sess-300/message', ({ request }) => {
         observedSignal = request.signal
+        sessionBusy = true
+        const encoder = new TextEncoder()
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
             controller.enqueue(
-              new TextEncoder().encode('event: text\ndata: {"type":"text","text":"Working..."}\n\n'),
+              encoder.encode('event: text\ndata: {"type":"text","text":"Working..."}\n\n'),
+            )
+            controller.enqueue(
+              encoder.encode(
+                'event: approval_required\ndata: {"type":"approval_required","approval":{"toolUseId":"tu-switch","toolName":"lifeos_tasks_create","input":{"body":{"title":"Buy milk"}}}}\n\n',
+              ),
             )
           },
         })
@@ -211,11 +222,17 @@ describe('ChatPage', () => {
           headers: { 'Content-Type': 'text/event-stream' },
         })
       }),
+      http.post('/api/chat/sessions/sess-300/cancel', () => {
+        cancelCalled = true
+        sessionBusy = false
+        return HttpResponse.json({ ok: true, cancelled: true })
+      }),
     )
 
     useChatStore.setState({ activeSessionId: 'sess-300' })
+    const queryClient = createTestQueryClient()
     const user = userEvent.setup()
-    const { unmount } = renderWithProviders(<ChatPage />)
+    const { unmount } = renderWithProviders(<ChatPage />, { queryClient })
 
     const input = await screen.findByPlaceholderText(
       'Ask about your tasks, schedule, habits, or notes...',
@@ -224,11 +241,71 @@ describe('ChatPage', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     expect(await screen.findByText('Working...')).toBeInTheDocument()
-    expect(observedSignal).toBeDefined()
+    expect(await screen.findByText('Create Task')).toBeInTheDocument()
     expect(observedSignal?.aborted).toBe(false)
 
+    // Simulate switching to Finance/Tasks and coming back to Chat
     unmount()
+    expect(observedSignal?.aborted).toBe(false)
+
+    renderWithProviders(<ChatPage />, { queryClient })
+    expect(await screen.findByText('Working...')).toBeInTheDocument()
+    expect(screen.getByText('Create Task')).toBeInTheDocument()
+    expect(screen.getByText('Buy milk')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
+
+    // Clicking Stop aborts the SSE stream and cancels on backend
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
     expect(observedSignal?.aborted).toBe(true)
+    await waitFor(() => expect(cancelCalled).toBe(true))
+  })
+
+  it('restores pending approvals and Stop button from session detail after reload', async () => {
+    let approvalPayload: { toolUseId: string; allow: boolean } | null = null
+    let busy = true
+    let pendingApprovals = [
+      {
+        toolUseId: 'apr-reload-1',
+        toolName: 'lifeos_finance_update_account',
+        input: { params: { id: 'acc-1' }, body: { name: 'Main' } },
+      },
+    ]
+    const session = {
+      id: 'sess-reload',
+      title: 'Reload check',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-reload', () =>
+        HttpResponse.json({
+          ...session,
+          busy,
+          pendingApprovals,
+          messages: [{ role: 'user', text: 'help me remove e2e test in finance' }],
+        }),
+      ),
+      http.post('/api/chat/sessions/sess-reload/approve', async ({ request }) => {
+        approvalPayload = (await request.json()) as { toolUseId: string; allow: boolean }
+        busy = false
+        pendingApprovals = []
+        return HttpResponse.json({ ok: true })
+      }),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-reload' })
+    const user = userEvent.setup()
+    renderWithProviders(<ChatPage />)
+
+    expect(await screen.findByText('Approval needed')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Approve' }))
+
+    await waitFor(() => {
+      expect(approvalPayload).toEqual({ toolUseId: 'apr-reload-1', allow: true })
+    })
   })
 
   it('handles null messages on empty session when clicking a starter prompt', async () => {

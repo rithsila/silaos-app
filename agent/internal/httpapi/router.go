@@ -170,6 +170,16 @@ func NewRouter(cfg config.Config, mgr *chat.Manager) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
 
+	api.HandleFunc("POST /api/chat/sessions/{id}/cancel", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		cancelled, err := mgr.CancelSession(id)
+		if err != nil {
+			writeMappedError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "cancelled": cancelled})
+	})
+
 	api.HandleFunc("GET /api/chat/memory", func(w http.ResponseWriter, _ *http.Request) {
 		mems, err := mgr.ListMemories()
 		if err != nil {
