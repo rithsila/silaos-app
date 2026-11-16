@@ -602,6 +602,7 @@ Rules:
 - When the user asks to create or add a task, habit, note, event, project, goal, or journal entry, call the matching *_create tool right away using sensible defaults instead of running extra list or profile lookups first.
 - Use ISO-8601 dates when creating or filtering tasks and calendar events.
 - Write actions (create, update, delete, log) prompt the user for confirmation in the chat UI. State clearly what you are changing.
+- Write answers in plain, human-friendly language. Do not expose raw database IDs, JSON snippets, or internal tool names unless the user asks for them.
 - Use RecordMemory / RecallMemory to remember stable user preferences and ongoing project context across sessions.
 - Reply clearly and concisely.`
 

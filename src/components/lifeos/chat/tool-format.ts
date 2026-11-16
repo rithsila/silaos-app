@@ -101,6 +101,15 @@ function formatFieldValue(key: string, value: unknown): string {
     return String(value)
   }
   if (typeof value === 'string') {
+    if ((key === 'query' || key === 'q') && value.startsWith('select:')) {
+      const names = value
+        .slice('select:'.length)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((name) => formatToolLabel(name))
+      return Array.from(new Set(names)).join(', ')
+    }
     if (VALUE_LABELS[value]) return VALUE_LABELS[value]
     // Format ISO-8601 dates/datetimes concisely
     if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value)) {
@@ -165,6 +174,37 @@ export function formatToolLabel(toolName?: string, rawInput?: unknown): string {
   return `${verb} ${formattedNouns}`
 }
 
+const PROGRESS_VERBS: Record<string, string> = {
+  Check: 'Checking',
+  View: 'Viewing',
+  Create: 'Creating',
+  Update: 'Updating',
+  Delete: 'Deleting',
+  Log: 'Logging',
+  Start: 'Starting',
+  Stop: 'Stopping',
+  Search: 'Searching',
+  Stats: 'Checking stats',
+  Export: 'Exporting',
+  Find: 'Finding',
+  Recall: 'Recalling',
+  Save: 'Saving',
+  Run: 'Running',
+}
+
+/** Converts a tool label into a live progress phrase (e.g. "Check Tasks" -> "Checking Tasks..."). */
+export function formatProgressLabel(toolName?: string, rawInput?: unknown): string {
+  const label = formatToolLabel(toolName, rawInput)
+  const spaceIdx = label.indexOf(' ')
+  const firstWord = spaceIdx === -1 ? label : label.slice(0, spaceIdx)
+  const rest = spaceIdx === -1 ? '' : label.slice(spaceIdx)
+  const progressive = PROGRESS_VERBS[firstWord]
+  if (progressive) {
+    return `${progressive}${rest}...`
+  }
+  return `${label}...`
+}
+
 export function parseToolPayload(input: unknown): {
   fields: Array<{ label: string; value: string }>
   raw: string
@@ -227,7 +267,10 @@ export function parseToolPayload(input: unknown): {
 
   const fields = finalEntries
     .map(([k, v]) => ({
-      label: KEY_LABELS[k] || titleCase(k),
+      label:
+        (k === 'query' || k === 'q') && typeof v === 'string' && v.startsWith('select:')
+          ? 'Tools'
+          : KEY_LABELS[k] || titleCase(k),
       value: formatFieldValue(k, v),
     }))
     .filter((f) => f.value !== '')

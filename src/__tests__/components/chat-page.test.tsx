@@ -447,4 +447,67 @@ describe('ChatPage', () => {
 
     expect(await screen.findByText('Weekly Goals')).toBeInTheDocument()
   })
+
+  it('merges multi-step tool calls into one progress box with plain-English labels and no raw JSON', async () => {
+    const session = {
+      id: 'sess-group',
+      title: 'Finance check',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    server.use(
+      http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [session] })),
+      http.get('/api/chat/sessions/sess-group', () =>
+        HttpResponse.json({
+          ...session,
+          messages: [
+            { role: 'user', text: 'check finance accounts' },
+            {
+              role: 'assistant',
+              text: '',
+              toolCalls: [
+                {
+                  id: 't1',
+                  name: 'SearchExtraTools',
+                  input: '{"query":"select:lifeos_finance_accounts_list,lifeos_finance_budgets_list"}',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              text: '',
+              toolCalls: [
+                {
+                  id: 't2',
+                  name: 'ExecuteExtraTool',
+                  input: '{"tool_name":"lifeos_finance_accounts_list","params":{}}',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              text: 'Your checking account is active.',
+            },
+          ],
+        }),
+      ),
+    )
+
+    useChatStore.setState({ activeSessionId: 'sess-group' })
+    const user = userEvent.setup()
+    renderWithProviders(<ChatPage />)
+
+    // Single collapsed progress summary covering both steps (not two separate tool bars)
+    const summaryBtn = await screen.findByRole('button', { name: /Check Finance Accounts \+1/i })
+    expect(summaryBtn).toBeInTheDocument()
+    expect(screen.getByText('(2)')).toBeInTheDocument()
+    expect(screen.getByText('Your checking account is active.')).toBeInTheDocument()
+
+    // Expanding shows plain labels (select: formatted cleanly, no raw {"tool_name":...})
+    await user.click(summaryBtn)
+    expect(screen.getByText('Check Finance Accounts, Check Finance Budgets')).toBeInTheDocument()
+    expect(screen.queryByText(/select:lifeos_finance_accounts_list/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/"tool_name"/)).not.toBeInTheDocument()
+  })
 })
