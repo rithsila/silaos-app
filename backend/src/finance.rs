@@ -113,10 +113,25 @@ fn account_basic_from_row(
 
 pub async fn list_accounts(
     State(st): State<AppState>,
+    Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<AccountBasic>>, AppError> {
-    let rows = sqlx::query("SELECT * FROM FinanceAccount ORDER BY createdAt DESC")
-        .fetch_all(&st.db)
-        .await?;
+    let rows = match params.get("archived").map(|s| s.as_str()) {
+        Some("all") => {
+            sqlx::query("SELECT * FROM FinanceAccount ORDER BY createdAt DESC")
+                .fetch_all(&st.db)
+                .await?
+        }
+        Some("true") => {
+            sqlx::query("SELECT * FROM FinanceAccount WHERE archived = 1 ORDER BY createdAt DESC")
+                .fetch_all(&st.db)
+                .await?
+        }
+        _ => {
+            sqlx::query("SELECT * FROM FinanceAccount WHERE archived = 0 ORDER BY createdAt DESC")
+                .fetch_all(&st.db)
+                .await?
+        }
+    };
     let mut out = Vec::with_capacity(rows.len());
     for r in &rows {
         let id: String = r.try_get("id")?;
@@ -262,6 +277,24 @@ pub async fn update_account(
         .fetch_one(&st.db)
         .await?;
     Ok(Json(account_basic_from_row(&row, count)?))
+}
+
+pub async fn delete_account(
+    State(st): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let exists: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM FinanceAccount WHERE id = ?")
+        .bind(&id)
+        .fetch_one(&st.db)
+        .await?;
+    if exists == 0 {
+        return Err(AppError::NotFound("Account not found".to_string()));
+    }
+    sqlx::query("DELETE FROM FinanceAccount WHERE id = ?")
+        .bind(&id)
+        .execute(&st.db)
+        .await?;
+    Ok(Json(serde_json::json!({ "success": true })))
 }
 
 // ============================================

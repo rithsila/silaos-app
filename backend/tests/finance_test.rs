@@ -109,6 +109,76 @@ async fn test_finance_account_crud_happy_path() {
     let accounts: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
     assert_eq!(accounts.len(), 1);
     assert_eq!(accounts[0]["name"], "Updated Checking");
+
+    // 6. Archive account -> hidden from default list, visible with ?archived=true
+    let archive_body = json!({ "archived": true });
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/finance/accounts/{}", account_id))
+                .method("PATCH")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&archive_body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/finance/accounts")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let active_accounts: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(active_accounts.len(), 0);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/finance/accounts?archived=true")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let archived_accounts: Vec<Value> = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(archived_accounts.len(), 1);
+
+    // 7. Delete account permanently -> returns 200 and subsequent GET returns 404
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/finance/accounts/{}", account_id))
+                .method("DELETE")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/finance/accounts/{}", account_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]

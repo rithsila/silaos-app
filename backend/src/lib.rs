@@ -230,7 +230,9 @@ pub fn build_app(pool: SqlitePool) -> Router {
         )
         .route(
             "/api/finance/accounts/{id}",
-            get(finance::get_account).patch(finance::update_account),
+            get(finance::get_account)
+                .patch(finance::update_account)
+                .delete(finance::delete_account),
         )
         .route(
             "/api/finance/transactions",

@@ -167,7 +167,9 @@ export function FinancePage() {
 
   const accounts: FinanceAccount[] = useMemo(() => {
     if (!apiAccounts) return []
-    return (apiAccounts as Record<string, unknown>[]).map(mapApiAccount)
+    return (apiAccounts as Record<string, unknown>[])
+      .filter((a) => !a.archived)
+      .map(mapApiAccount)
   }, [apiAccounts])
 
   const transactions: Transaction[] = useMemo(() => {

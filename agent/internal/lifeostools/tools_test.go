@@ -80,7 +80,7 @@ func TestMutatingToolRequiresApproval(t *testing.T) {
 		}
 	}
 
-	for _, name := range []string{"lifeos_tasks_create", "lifeos_tasks_delete"} {
+	for _, name := range []string{"lifeos_tasks_create", "lifeos_tasks_delete", "lifeos_finance_account_delete"} {
 		tl := findTool(t, tools, name)
 		if tl.IsReadOnly(nil) {
 			t.Fatalf("expected %s to NOT be read-only", name)

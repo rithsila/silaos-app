@@ -191,6 +191,7 @@ func allSpecs() []endpointSpec {
 		{name: "lifeos_finance_accounts_list", description: "List finance accounts.", method: http.MethodGet, path: "/api/finance/accounts", deferred: true, schema: emptySchema},
 		{name: "lifeos_finance_account_create", description: "Create a finance account.", method: http.MethodPost, path: "/api/finance/accounts", deferred: true, schema: bodySchema},
 		{name: "lifeos_finance_account_update", description: "Update a finance account by id.", method: http.MethodPatch, path: "/api/finance/accounts", needsID: true, deferred: true, schema: updateSchema},
+		{name: "lifeos_finance_account_delete", description: "Delete a finance account by id.", method: http.MethodDelete, path: "/api/finance/accounts", needsID: true, deferred: true, schema: idSchema},
 		{name: "lifeos_finance_transactions_list", description: "List finance transactions.", method: http.MethodGet, path: "/api/finance/transactions", deferred: true, schema: querySchema},
 		{name: "lifeos_finance_transaction_create", description: "Create a finance transaction.", method: http.MethodPost, path: "/api/finance/transactions", deferred: true, schema: bodySchema},
 		{name: "lifeos_finance_transaction_delete", description: "Delete a finance transaction by id.", method: http.MethodDelete, path: "/api/finance/transactions", needsID: true, deferred: true, schema: idSchema},
