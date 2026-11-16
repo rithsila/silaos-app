@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from './client'
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './client'
 
 export interface ChatSessionSummary {
   id: string
@@ -33,6 +33,14 @@ export interface ChatConfigStatus {
   model: string
 }
 
+export const MAX_CUSTOM_INSTRUCTIONS_LENGTH = 2000
+
+export interface ChatInstructions {
+  enabled: boolean
+  instructions: string
+  updatedAt: string
+}
+
 export interface ChatApprovalRequest {
   toolUseId: string
   toolName: string
@@ -57,6 +65,17 @@ export interface ChatStreamEvent {
 
 export async function fetchChatConfig(): Promise<ChatConfigStatus> {
   return apiGet<ChatConfigStatus>('/api/chat/config')
+}
+
+export async function fetchChatInstructions(): Promise<ChatInstructions> {
+  return apiGet<ChatInstructions>('/api/chat/instructions')
+}
+
+export async function updateChatInstructions(payload: {
+  enabled: boolean
+  instructions: string
+}): Promise<ChatInstructions> {
+  return apiPut<ChatInstructions>('/api/chat/instructions', payload)
 }
 
 export async function fetchChatSessions(): Promise<ChatSessionSummary[]> {

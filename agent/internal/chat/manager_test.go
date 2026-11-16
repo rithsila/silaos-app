@@ -7,6 +7,7 @@ import (
 	"iter"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -494,5 +495,104 @@ func TestGetSessionIncludesBusyAndPendingApprovalsAndCancelUnblocks(t *testing.T
 	}
 	if after.Busy || len(after.PendingApprovals) != 0 {
 		t.Fatalf("expected clean state after cancel, got busy=%v pending=%d", after.Busy, len(after.PendingApprovals))
+	}
+}
+
+func TestCustomInstructionsPersistenceAndPromptInjection(t *testing.T) {
+	dir := t.TempDir()
+	var capturedSystems [][]string
+
+	prov := &scriptedProvider{
+		fn: func(_ context.Context, req llm.CompletionRequest, _ int) []llm.StreamEvent {
+			cp := append([]string(nil), req.System...)
+			capturedSystems = append(capturedSystems, cp)
+			return []llm.StreamEvent{
+				{Type: llm.SEMessageStart},
+				{Type: llm.SETextDelta, Text: "ok"},
+				{Type: llm.SEMessageDelta, StopReason: "end_turn"},
+				{Type: llm.SEMessageStop},
+			}
+		},
+	}
+
+	mgr := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient("http://127.0.0.1:1", ""), prov)
+
+	initial := mgr.GetInstructions()
+	if initial.Enabled || initial.Instructions != "" {
+		t.Fatalf("expected empty disabled default instructions, got %+v", initial)
+	}
+
+	// Reject oversized instructions without overwriting state.
+	tooLong := strings.Repeat("x", MaxInstructionsLength+1)
+	if _, err := mgr.UpdateInstructions(true, tooLong); !errors.Is(err, ErrInstructionsTooLong) {
+		t.Fatalf("expected ErrInstructionsTooLong, got %v", err)
+	}
+
+	// Valid update trims whitespace and persists across NewManager reload.
+	saved, err := mgr.UpdateInstructions(true, "  Reply in short bullet points.  ")
+	if err != nil {
+		t.Fatalf("UpdateInstructions: %v", err)
+	}
+	if !saved.Enabled || saved.Instructions != "Reply in short bullet points." || saved.UpdatedAt.IsZero() {
+		t.Fatalf("unexpected saved instructions: %+v", saved)
+	}
+
+	mgr2 := NewManager(config.Config{DataDir: dir, LLMAPIKey: "test"}, lifeostools.NewClient("http://127.0.0.1:1", ""), prov)
+	reloaded := mgr2.GetInstructions()
+	if !reloaded.Enabled || reloaded.Instructions != "Reply in short bullet points." {
+		t.Fatalf("expected persisted instructions after reload, got %+v", reloaded)
+	}
+
+	sess, err := mgr2.CreateSession(context.Background(), "Custom instructions check")
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+
+	// Enabled + non-empty -> appended after core system prompt & deferred tools.
+	if err := mgr2.SendMessage(context.Background(), sess.ID, "hello", func(StreamEvent) {}); err != nil {
+		t.Fatalf("SendMessage (enabled): %v", err)
+	}
+	if len(capturedSystems) != 1 {
+		t.Fatalf("expected 1 LLM call, got %d", len(capturedSystems))
+	}
+	sys := capturedSystems[0]
+	customIdx := -1
+	for i, seg := range sys {
+		if strings.Contains(seg, "User custom instructions:\nReply in short bullet points.") {
+			customIdx = i
+			break
+		}
+	}
+	if customIdx <= 0 {
+		t.Fatalf("expected custom instructions segment after base prompt, got %#v", sys)
+	}
+	if !strings.Contains(sys[customIdx], "never override") {
+		t.Fatalf("expected safety guard in custom instructions segment, got %q", sys[customIdx])
+	}
+
+	// Disabled -> NOT included in req.System.
+	if _, err := mgr2.UpdateInstructions(false, "Reply in short bullet points."); err != nil {
+		t.Fatalf("UpdateInstructions disable: %v", err)
+	}
+	if err := mgr2.SendMessage(context.Background(), sess.ID, "hello again", func(StreamEvent) {}); err != nil {
+		t.Fatalf("SendMessage (disabled): %v", err)
+	}
+	for _, seg := range capturedSystems[1] {
+		if strings.Contains(seg, "User custom instructions:") {
+			t.Fatalf("expected no custom instructions when disabled, got %#v", capturedSystems[1])
+		}
+	}
+
+	// Enabled but blank -> NOT included in req.System.
+	if _, err := mgr2.UpdateInstructions(true, "   "); err != nil {
+		t.Fatalf("UpdateInstructions blank: %v", err)
+	}
+	if err := mgr2.SendMessage(context.Background(), sess.ID, "hello blank", func(StreamEvent) {}); err != nil {
+		t.Fatalf("SendMessage (blank): %v", err)
+	}
+	for _, seg := range capturedSystems[2] {
+		if strings.Contains(seg, "User custom instructions:") {
+			t.Fatalf("expected no custom instructions when blank, got %#v", capturedSystems[2])
+		}
 	}
 }

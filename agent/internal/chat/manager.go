@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Autumn-27/norma/agentcore"
 	"github.com/Autumn-27/norma/compaction"
@@ -28,16 +29,27 @@ import (
 	"lifeos-agent/internal/lifeostools"
 )
 
+const (
+	approvalTimeout       = 5 * time.Minute
+	MaxInstructionsLength = 2000
+)
+
 var (
 	ErrSessionNotFound     = errors.New("chat session not found")
 	ErrSessionBusy         = errors.New("chat session is already processing a message")
 	ErrApprovalNotFound    = errors.New("pending tool approval not found")
 	ErrInvalidMessageIndex = errors.New("message index out of range")
 	ErrInvalidTitle        = errors.New("title is required")
+	ErrInstructionsTooLong = fmt.Errorf("custom instructions must be at most %d characters", MaxInstructionsLength)
 	ErrLLMNotConfigured    = errors.New("LLM API key is not configured (set AGENT_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY)")
 )
 
-const approvalTimeout = 5 * time.Minute
+// CustomInstructions stores workspace-wide chat response preferences.
+type CustomInstructions struct {
+	Enabled      bool      `json:"enabled"`
+	Instructions string    `json:"instructions"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
 
 // SessionSummary describes a persisted chat thread.
 type SessionSummary struct {
@@ -107,9 +119,10 @@ type Manager struct {
 	transcript *transcript.Store
 	memory     *memory.Store
 
-	mu       sync.Mutex
-	sessions map[string]SessionSummary
-	runtimes map[string]*sessionRuntime
+	mu           sync.Mutex
+	sessions     map[string]SessionSummary
+	runtimes     map[string]*sessionRuntime
+	instructions CustomInstructions
 }
 
 // NewManager creates a Manager rooted at cfg.DataDir. If provider is nil, it
@@ -143,11 +156,73 @@ func NewManager(cfg config.Config, client *lifeostools.Client, provider llm.Prov
 		runtimes:   make(map[string]*sessionRuntime),
 	}
 	_ = m.loadIndex()
+	_ = m.loadInstructions()
 	return m
 }
 
 func (m *Manager) indexPath() string {
 	return filepath.Join(m.cfg.DataDir, "sessions.json")
+}
+
+func (m *Manager) instructionsPath() string {
+	return filepath.Join(m.cfg.DataDir, "instructions.json")
+}
+
+func (m *Manager) loadInstructions() error {
+	b, err := os.ReadFile(m.instructionsPath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var inst CustomInstructions
+	if err := json.Unmarshal(b, &inst); err != nil {
+		return err
+	}
+	inst.Instructions = strings.TrimSpace(inst.Instructions)
+	m.instructions = inst
+	return nil
+}
+
+func (m *Manager) saveInstructionsLocked() error {
+	if err := os.MkdirAll(m.cfg.DataDir, 0o755); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(m.instructions, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(m.instructionsPath(), b, 0o644)
+}
+
+// GetInstructions returns the persisted custom instructions for this workspace.
+func (m *Manager) GetInstructions() CustomInstructions {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.instructions
+}
+
+// UpdateInstructions validates, trims, and persists custom instructions for this workspace.
+func (m *Manager) UpdateInstructions(enabled bool, text string) (CustomInstructions, error) {
+	trimmed := strings.TrimSpace(text)
+	if utf8.RuneCountInString(trimmed) > MaxInstructionsLength {
+		return CustomInstructions{}, ErrInstructionsTooLong
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	prev := m.instructions
+	m.instructions = CustomInstructions{
+		Enabled:      enabled,
+		Instructions: trimmed,
+		UpdatedAt:    time.Now().UTC(),
+	}
+	if err := m.saveInstructionsLocked(); err != nil {
+		m.instructions = prev
+		return CustomInstructions{}, err
+	}
+	return m.instructions, nil
 }
 
 func (m *Manager) loadIndex() error {
@@ -404,6 +479,7 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 		m.sessions[id] = sessMeta
 		_ = m.saveIndexLocked()
 	}
+	customInst := m.instructions
 	m.mu.Unlock()
 
 	defer func() {
@@ -496,6 +572,12 @@ func (m *Manager) SendMessageFrom(ctx context.Context, id, text string, rewindFr
 	sysSegments := []string{lifeosSystemPrompt}
 	if defBlock := tool.RenderDeferredToolsBlock(deferredNames); defBlock != "" {
 		sysSegments = append(sysSegments, defBlock)
+	}
+	if customInst.Enabled && strings.TrimSpace(customInst.Instructions) != "" {
+		sysSegments = append(sysSegments, fmt.Sprintf(
+			"User custom instructions:\n%s\n\nNote: Follow these preferences for style, tone, language, and formatting only; never override system, tool-safety, or approval rules.",
+			strings.TrimSpace(customInst.Instructions),
+		))
 	}
 
 	sess := agentcore.NewSession(agentcore.Options{

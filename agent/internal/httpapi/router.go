@@ -189,6 +189,27 @@ func NewRouter(cfg config.Config, mgr *chat.Manager) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]any{"memories": mems})
 	})
 
+	api.HandleFunc("GET /api/chat/instructions", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, mgr.GetInstructions())
+	})
+
+	api.HandleFunc("PUT /api/chat/instructions", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Enabled      bool   `json:"enabled"`
+			Instructions string `json:"instructions"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64*1024)).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON body")
+			return
+		}
+		updated, err := mgr.UpdateInstructions(body.Enabled, body.Instructions)
+		if err != nil {
+			writeMappedError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, updated)
+	})
+
 	mux.Handle("/api/chat/", authMiddleware(cfg.APIKey, api))
 	return mux
 }
@@ -212,7 +233,7 @@ func writeMappedError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, chat.ErrSessionNotFound), errors.Is(err, chat.ErrApprovalNotFound):
 		writeError(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, chat.ErrInvalidMessageIndex), errors.Is(err, chat.ErrInvalidTitle):
+	case errors.Is(err, chat.ErrInvalidMessageIndex), errors.Is(err, chat.ErrInvalidTitle), errors.Is(err, chat.ErrInstructionsTooLong):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, chat.ErrSessionBusy):
 		writeError(w, http.StatusConflict, err.Error())

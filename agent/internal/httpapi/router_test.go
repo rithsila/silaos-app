@@ -213,3 +213,74 @@ func TestCancelRoute(t *testing.T) {
 		t.Fatalf("unexpected cancel payload: %+v", payload)
 	}
 }
+
+func TestCustomInstructionsRoutes(t *testing.T) {
+	h := newTestRouter(t, "", &mockLLM{})
+
+	// Default GET returns disabled empty instructions.
+	recGet := httptest.NewRecorder()
+	h.ServeHTTP(recGet, httptest.NewRequest(http.MethodGet, "/api/chat/instructions", nil))
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 on GET, got %d: %s", recGet.Code, recGet.Body.String())
+	}
+	var initial chat.CustomInstructions
+	if err := json.Unmarshal(recGet.Body.Bytes(), &initial); err != nil {
+		t.Fatalf("unmarshal GET: %v", err)
+	}
+	if initial.Enabled || initial.Instructions != "" {
+		t.Fatalf("expected empty disabled instructions, got %+v", initial)
+	}
+
+	// PUT updates and trims instructions.
+	recPut := httptest.NewRecorder()
+	h.ServeHTTP(
+		recPut,
+		httptest.NewRequest(
+			http.MethodPut,
+			"/api/chat/instructions",
+			bytes.NewBufferString(`{"enabled":true,"instructions":"  Use simple English.  "}`),
+		),
+	)
+	if recPut.Code != http.StatusOK {
+		t.Fatalf("expected 200 on PUT, got %d: %s", recPut.Code, recPut.Body.String())
+	}
+	var updated chat.CustomInstructions
+	if err := json.Unmarshal(recPut.Body.Bytes(), &updated); err != nil {
+		t.Fatalf("unmarshal PUT: %v", err)
+	}
+	if !updated.Enabled || updated.Instructions != "Use simple English." {
+		t.Fatalf("unexpected PUT response: %+v", updated)
+	}
+
+	// Subsequent GET reflects saved instructions.
+	recGet2 := httptest.NewRecorder()
+	h.ServeHTTP(recGet2, httptest.NewRequest(http.MethodGet, "/api/chat/instructions", nil))
+	var after chat.CustomInstructions
+	if err := json.Unmarshal(recGet2.Body.Bytes(), &after); err != nil {
+		t.Fatalf("unmarshal GET 2: %v", err)
+	}
+	if !after.Enabled || after.Instructions != "Use simple English." {
+		t.Fatalf("expected persisted instructions on GET, got %+v", after)
+	}
+
+	// Exceeding max length returns 400 with error JSON.
+	oversized := strings.Repeat("a", chat.MaxInstructionsLength+1)
+	body, _ := json.Marshal(map[string]any{"enabled": true, "instructions": oversized})
+	recTooLong := httptest.NewRecorder()
+	h.ServeHTTP(recTooLong, httptest.NewRequest(http.MethodPut, "/api/chat/instructions", bytes.NewReader(body)))
+	if recTooLong.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for oversized instructions, got %d: %s", recTooLong.Code, recTooLong.Body.String())
+	}
+	var errPayload map[string]string
+	if err := json.Unmarshal(recTooLong.Body.Bytes(), &errPayload); err != nil || errPayload["error"] == "" {
+		t.Fatalf("expected error JSON, got %s", recTooLong.Body.String())
+	}
+
+	// Auth middleware protects instructions endpoints.
+	authH := newTestRouter(t, "secret-123", &mockLLM{})
+	recUnauth := httptest.NewRecorder()
+	authH.ServeHTTP(recUnauth, httptest.NewRequest(http.MethodGet, "/api/chat/instructions", nil))
+	if recUnauth.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without token, got %d", recUnauth.Code)
+	}
+}

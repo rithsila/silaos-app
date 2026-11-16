@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, PanelLeft, Send, Square } from 'lucide-react'
+import { AlertTriangle, PanelLeft, Send, SlidersHorizontal, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -14,6 +14,7 @@ import {
   createChatSession,
   deleteChatSession,
   fetchChatConfig,
+  fetchChatInstructions,
   fetchChatSession,
   fetchChatSessions,
   renameChatSession,
@@ -22,6 +23,7 @@ import {
 } from '@/lib/api/chat'
 import { ChatThreadList } from './chat-thread-list'
 import { ChatMessageList } from './chat-message-list'
+import { CustomInstructionsDialog } from './custom-instructions-dialog'
 import type { PendingApproval } from './tool-approval-card'
 
 const EMPTY_TOOLS: ChatToolTrace[] = []
@@ -49,6 +51,7 @@ export function ChatPage() {
   const [input, setInput] = useState('')
   const [threadsOpen, setThreadsOpen] = useState(true)
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false)
+  const [instructionsOpen, setInstructionsOpen] = useState(false)
   const [localErrorText, setLocalErrorText] = useState<string | null>(null)
 
   const isLocalStreaming = runtime?.isStreaming ?? false
@@ -59,6 +62,16 @@ export function ChatPage() {
     queryFn: fetchChatConfig,
     retry: false,
   })
+
+  const { data: instructionsData } = useQuery({
+    queryKey: ['chat', 'instructions'],
+    queryFn: fetchChatInstructions,
+    retry: false,
+  })
+
+  const hasActiveInstructions = Boolean(
+    instructionsData?.enabled && instructionsData.instructions.trim(),
+  )
 
   const { data: sessions = [] } = useQuery({
     queryKey: ['chat', 'sessions'],
@@ -297,7 +310,31 @@ export function ChatPage() {
               </p>
             </div>
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 shrink-0 gap-1.5 px-2.5 text-xs"
+            onClick={() => setInstructionsOpen(true)}
+            aria-label={t('chat.customInstructions')}
+            data-active={hasActiveInstructions ? 'true' : 'false'}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('chat.customInstructions')}</span>
+            {hasActiveInstructions && (
+              <span
+                className="h-2 w-2 rounded-full bg-primary"
+                aria-label={t('chat.customInstructionsActive')}
+              />
+            )}
+          </Button>
         </div>
+
+        <CustomInstructionsDialog
+          open={instructionsOpen}
+          onOpenChange={setInstructionsOpen}
+          initialData={instructionsData}
+        />
 
         {config && !config.llmConfigured && (
           <div className="mx-4 mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">

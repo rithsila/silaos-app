@@ -50,6 +50,13 @@ describe('ChatPage', () => {
         HttpResponse.json({ llmConfigured: true, provider: 'openai', model: 'gpt-4o-mini' }),
       ),
       http.get('/api/chat/sessions', () => HttpResponse.json({ sessions: [] })),
+      http.get('/api/chat/instructions', () =>
+        HttpResponse.json({
+          enabled: false,
+          instructions: '',
+          updatedAt: '2026-01-01T00:00:00Z',
+        }),
+      ),
     )
   })
 
@@ -509,5 +516,80 @@ describe('ChatPage', () => {
     expect(screen.getByText('Check Finance Accounts, Check Finance Budgets')).toBeInTheDocument()
     expect(screen.queryByText(/select:lifeos_finance_accounts_list/)).not.toBeInTheDocument()
     expect(screen.queryByText(/"tool_name"/)).not.toBeInTheDocument()
+  })
+
+  it('opens custom instructions dialog, saves via PUT, shows active indicator, and clears', async () => {
+    let stored = {
+      enabled: false,
+      instructions: '',
+      updatedAt: '2026-01-01T00:00:00Z',
+    }
+    const putPayloads: Array<{ enabled: boolean; instructions: string }> = []
+
+    server.use(
+      http.get('/api/chat/instructions', () => HttpResponse.json(stored)),
+      http.put('/api/chat/instructions', async ({ request }) => {
+        const body = (await request.json()) as { enabled: boolean; instructions: string }
+        putPayloads.push(body)
+        stored = {
+          enabled: body.enabled,
+          instructions: body.instructions.trim(),
+          updatedAt: new Date().toISOString(),
+        }
+        return HttpResponse.json(stored)
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderWithProviders(<ChatPage />)
+
+    const triggerBtn = await screen.findByRole('button', { name: 'Custom Instructions' })
+    expect(triggerBtn).toHaveAttribute('data-active', 'false')
+    expect(screen.queryByLabelText('Active')).not.toBeInTheDocument()
+
+    await user.click(triggerBtn)
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('0 / 2000')).toBeInTheDocument()
+
+    const toggle = screen.getByRole('switch', { name: 'Enable custom instructions' })
+    await user.click(toggle)
+
+    const textarea = screen.getByLabelText('Instructions')
+    await user.type(textarea, 'Reply in short bullet points.')
+    expect(screen.getByText('29 / 2000')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(putPayloads[0]).toEqual({
+        enabled: true,
+        instructions: 'Reply in short bullet points.',
+      })
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Custom Instructions' })).toHaveAttribute(
+        'data-active',
+        'true',
+      )
+    })
+    expect(screen.getByLabelText('Active')).toBeInTheDocument()
+
+    // Re-open and clear
+    await user.click(screen.getByRole('button', { name: 'Custom Instructions' }))
+    await user.click(await screen.findByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(putPayloads[1]).toEqual({ enabled: false, instructions: '' })
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Custom Instructions' })).toHaveAttribute(
+        'data-active',
+        'false',
+      )
+    })
+    expect(screen.queryByLabelText('Active')).not.toBeInTheDocument()
   })
 })
