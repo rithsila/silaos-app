@@ -13,6 +13,14 @@
   ],
   "license": "MIT",
   "author": "Rithsila",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rithsila/silaos-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rithsila/silaos-app/issues"
+  },
+  "homepage": "https://github.com/rithsila/silaos-app#readme",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

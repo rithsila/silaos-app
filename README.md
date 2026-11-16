@@ -90,8 +90,8 @@ Next.js serves the UI and proxies every `/api/*` request to the Rust backend. Th
 **Prerequisites:** Bun, Rust (stable toolchain)
 
 ```bash
-git clone https://github.com/lunanoir21/Life-os-project.git
-cd Life-os-project
+git clone https://github.com/rithsila/silaos-app.git
+cd silaos-app
 
 # Install frontend dependencies
 bun install
