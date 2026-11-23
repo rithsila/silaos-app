@@ -63,6 +63,7 @@ const nextConfig: NextConfig = {
       ...proxy("/api/projects"),
       ...proxy("/api/notes"),
       ...proxy("/api/note-folders"),
+      ...proxy("/api/bookmarks"),
       ...proxy("/api/tags"),
       ...proxy("/api/journal"),
       ...proxy("/api/habits"),

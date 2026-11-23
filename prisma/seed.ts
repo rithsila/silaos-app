@@ -26,6 +26,7 @@ async function main() {
   await prisma.habit.deleteMany()
   await prisma.bookmarkTag.deleteMany()
   await prisma.bookmark.deleteMany()
+  await prisma.bookmarkFolder.deleteMany()
   await prisma.noteLink.deleteMany()
   await prisma.noteTag.deleteMany()
   await prisma.note.deleteMany()

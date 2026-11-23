@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from './client'
+import type { Bookmark, BookmarkFolder } from '@/types'
 
 // ============================================
 // Dashboard
@@ -130,6 +131,112 @@ export function useNoteFolders() {
   return useQuery({
     queryKey: ['note-folders'],
     queryFn: () => apiGet<unknown[]>('/api/note-folders'),
+  })
+}
+
+// ============================================
+// Bookmarks
+// ============================================
+export interface BookmarkQueryParams {
+  folderId?: string
+  status?: string
+  importance?: string
+  search?: string
+}
+
+export function useBookmarks(query?: BookmarkQueryParams) {
+  const cleanParams: Record<string, string> = {}
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== '') {
+        cleanParams[k] = v
+      }
+    }
+  }
+
+  return useQuery({
+    queryKey: ['bookmarks', query],
+    queryFn: () =>
+      apiGet<Bookmark[]>(
+        '/api/bookmarks',
+        Object.keys(cleanParams).length > 0 ? cleanParams : undefined,
+      ),
+  })
+}
+
+export function useBookmarkFolders() {
+  return useQuery({
+    queryKey: ['bookmark-folders'],
+    queryFn: () => apiGet<BookmarkFolder[]>('/api/bookmarks/folders'),
+  })
+}
+
+export function useCreateBookmark() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiPost<Bookmark>('/api/bookmarks', data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+    },
+  })
+}
+
+export function useUpdateBookmark() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Record<string, unknown>) =>
+      apiPut<Bookmark>(`/api/bookmarks/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+    },
+  })
+}
+
+export function useDeleteBookmark() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/bookmarks/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+    },
+  })
+}
+
+export function useCreateBookmarkFolder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPost<BookmarkFolder>('/api/bookmarks/folders', data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+    },
+  })
+}
+
+export function useUpdateBookmarkFolder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & Record<string, unknown>) =>
+      apiPut<BookmarkFolder>(`/api/bookmarks/folders/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+    },
+  })
+}
+
+export function useDeleteBookmarkFolder() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/bookmarks/folders/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookmark-folders'] })
+      qc.invalidateQueries({ queryKey: ['bookmarks'] })
+    },
   })
 }
 

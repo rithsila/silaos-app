@@ -8,6 +8,7 @@ import {
   MessageSquare,
   CheckSquare,
   StickyNote,
+  Bookmark,
   Repeat,
   BookOpen,
   Wallet,
@@ -44,6 +45,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
       items: [
         { id: 'tasks' as ModuleId, label: t('nav.tasks'), icon: CheckSquare },
         { id: 'notes' as ModuleId, label: t('nav.notes'), icon: StickyNote },
+        { id: 'bookmarks' as ModuleId, label: t('nav.bookmarks'), icon: Bookmark },
         { id: 'calendar' as ModuleId, label: t('nav.calendar'), icon: CalendarDays },
         { id: 'time' as ModuleId, label: t('nav.timeTracker'), icon: Timer },
       ],
@@ -73,7 +75,7 @@ function SidebarContent({ collapsed }: { collapsed: boolean }) {
   const filteredSections = navSections.map(section => ({
     ...section,
     items: section.items.filter(item =>
-      enabledModules.includes(item.id) || item.id === 'dashboard' || item.id === 'chat'
+      enabledModules.includes(item.id) || item.id === 'dashboard' || item.id === 'chat' || item.id === 'bookmarks'
     )
   })).filter(section => section.items.length > 0)
 

@@ -119,6 +119,7 @@ const typeToCategory: Record<NotificationItem['type'], NotificationCategory> = {
 // Map module to valid ModuleId for navigation
 const moduleToModuleId: Record<string, ModuleId> = {
   tasks: 'tasks',
+  bookmarks: 'bookmarks',
   habits: 'habits',
   goals: 'goals',
   finance: 'finance',

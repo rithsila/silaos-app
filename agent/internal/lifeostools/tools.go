@@ -76,7 +76,9 @@ var createFieldHints = map[string]string{
 	"lifeos_events":   "Fields: {title (required), startDate (required, ISO-8601), endDate?, allDay?, location?, description?}.",
 	"lifeos_habits":   "Fields: {name (required), description?, frequency? (daily|weekly|custom), targetCount?, unit?, color?}.",
 	"lifeos_journal":  "Fields: {title?, content?, mood?, moodScore?, energy?, stress?, gratitude?, date?}.",
-	"lifeos_goals":    "Fields: {title (required), description?, category?, status?, progress?, targetDate?}.",
+	"lifeos_goals":            "Fields: {title (required), description?, category?, status?, progress?, targetDate?}.",
+	"lifeos_bookmarks":        "Fields: {url (required), title (required), description?, favicon?, userNote?, importance? (low|normal|high), status? (inbox|filed|archived), folderId?, projectId?, noteId?, suggestedFolderId?, suggestedImportance?, suggestionReason?}.",
+	"lifeos_bookmark_folders": "Fields: {name (required), icon?, color?, order?}.",
 }
 
 func crudSpecs(prefix, basePath, label string, primaryList, primaryCreate, primaryUpdate bool) []endpointSpec {
@@ -219,6 +221,8 @@ func allSpecs() []endpointSpec {
 	specs = append(specs, crudSpecs("lifeos_journal", "/api/journal", "journal entries", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_goals", "/api/goals", "goals", true, true, false)...)
 	specs = append(specs, crudSpecs("lifeos_courses", "/api/courses", "learning courses", false, false, false)...)
+	specs = append(specs, crudSpecs("lifeos_bookmarks", "/api/bookmarks", "bookmarks", true, true, false)...)
+	specs = append(specs, crudSpecs("lifeos_bookmark_folders", "/api/bookmarks/folders", "bookmark folders", false, false, false)...)
 	return specs
 }
 

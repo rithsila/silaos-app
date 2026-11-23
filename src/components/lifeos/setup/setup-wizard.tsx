@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   StickyNote,
+  Bookmark,
   Repeat,
   BookOpen,
   Wallet,
@@ -97,6 +98,7 @@ const moduleCategories: { name: string; modules: WizardModule[] }[] = [
     modules: [
       { id: 'tasks', icon: CheckSquare, enabled: true },
       { id: 'notes', icon: StickyNote, enabled: true },
+      { id: 'bookmarks', icon: Bookmark, enabled: true },
       { id: 'calendar', icon: CalendarDays, enabled: true },
       { id: 'time', icon: Timer, enabled: false },
     ],

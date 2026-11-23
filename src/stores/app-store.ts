@@ -6,6 +6,7 @@ export type ModuleId =
   | 'chat'
   | 'tasks'
   | 'notes'
+  | 'bookmarks'
   | 'habits'
   | 'journal'
   | 'finance'
@@ -145,7 +146,7 @@ export const useAppStore = create<AppState>()(
       currencyConverterEnabled: process.env.NEXT_PUBLIC_ENABLE_CURRENCY_CONVERTER !== 'false',
       setCurrencyConverterEnabled: (enabled) => set({ currencyConverterEnabled: enabled }),
 
-      enabledModules: ['dashboard', 'chat', 'tasks', 'notes', 'habits', 'journal', 'finance', 'goals', 'learning', 'calendar', 'time', 'settings'],
+      enabledModules: ['dashboard', 'chat', 'tasks', 'notes', 'bookmarks', 'habits', 'journal', 'finance', 'goals', 'learning', 'calendar', 'time', 'settings'],
       setEnabledModules: (modules) => set({ enabledModules: modules }),
     }),
     {

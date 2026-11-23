@@ -11,6 +11,7 @@ import { WelcomeScreen } from './welcome/welcome-screen'
 import { DashboardPage } from './dashboard/dashboard-page'
 import { TasksPage } from './tasks/tasks-page'
 import { NotesPage } from './notes/notes-page'
+import { BookmarksView } from './bookmarks/bookmarks-view'
 import { HabitsPage } from './habits/habits-page'
 import { JournalPage } from './journal/journal-page'
 import { FinancePage } from './finance/finance-page'
@@ -31,6 +32,7 @@ const moduleComponents: Record<string, React.ComponentType> = {
   chat: ChatPage,
   tasks: TasksPage,
   notes: NotesPage,
+  bookmarks: BookmarksView,
   habits: HabitsPage,
   journal: JournalPage,
   finance: FinancePage,

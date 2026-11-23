@@ -2,6 +2,7 @@
 
 mod activity;
 mod analytics;
+pub mod bookmarks;
 mod courses;
 mod dashboard;
 mod data;
@@ -132,6 +133,8 @@ pub fn build_app(pool: SqlitePool) -> Router {
                 .patch(notes::update_note)
                 .delete(notes::delete_note),
         )
+        // Bookmarks
+        .nest("/api/bookmarks", bookmarks::router())
         // Projects
         .route(
             "/api/projects",

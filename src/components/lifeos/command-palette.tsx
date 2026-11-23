@@ -7,6 +7,7 @@ import {
   MessageSquare,
   CheckSquare,
   StickyNote,
+  Bookmark,
   Repeat,
   BookOpen,
   Wallet,
@@ -33,6 +34,7 @@ const modules: { id: ModuleId; label: string; icon: React.ElementType }[] = [
   { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'notes', label: 'Notes', icon: StickyNote },
+  { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
   { id: 'habits', label: 'Habits', icon: Repeat },
   { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'finance', label: 'Finance', icon: Wallet },
@@ -46,6 +48,7 @@ const modules: { id: ModuleId; label: string; icon: React.ElementType }[] = [
 const quickActions = [
   { label: 'New Task', icon: Plus, module: 'tasks' as ModuleId, description: 'Create a new task' },
   { label: 'New Note', icon: Plus, module: 'notes' as ModuleId, description: 'Create a new note' },
+  { label: 'New Bookmark', icon: Plus, module: 'bookmarks' as ModuleId, description: 'Save a new bookmark' },
   { label: 'New Journal Entry', icon: Plus, module: 'journal' as ModuleId, description: 'Write in your journal' },
   { label: 'Add Transaction', icon: Plus, module: 'finance' as ModuleId, description: 'Record a transaction' },
   { label: 'Check Habits', icon: Repeat, module: 'habits' as ModuleId, description: 'Mark today\'s habits' },

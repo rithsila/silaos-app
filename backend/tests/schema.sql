@@ -178,14 +178,36 @@ CREATE TABLE "NoteLink" (
 );
 
 -- CreateTable
+CREATE TABLE "BookmarkFolder" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "icon" TEXT DEFAULT 'folder',
+    "color" TEXT DEFAULT '#3b82f6',
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" INTEGER NOT NULL,
+    "updatedAt" INTEGER NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "Bookmark" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "url" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
     "favicon" TEXT,
+    "userNote" TEXT,
+    "importance" TEXT NOT NULL DEFAULT 'normal',
+    "status" TEXT NOT NULL DEFAULT 'inbox',
+    "folderId" TEXT,
+    "projectId" TEXT,
     "noteId" TEXT,
+    "suggestedFolderId" TEXT,
+    "suggestedImportance" TEXT,
+    "suggestionReason" TEXT,
     "createdAt" INTEGER NOT NULL,
+    "updatedAt" INTEGER NOT NULL,
+    CONSTRAINT "Bookmark_folderId_fkey" FOREIGN KEY ("folderId") REFERENCES "BookmarkFolder" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Bookmark_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Bookmark_noteId_fkey" FOREIGN KEY ("noteId") REFERENCES "Note" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
